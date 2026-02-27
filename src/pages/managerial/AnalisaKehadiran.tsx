@@ -88,9 +88,10 @@ export function AnalisaKehadiran() {
 
   // Calculate monthly statistics
   const getMonthlyStats = () => {
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
+    // Use selectedMonth and selectedYear instead of current date
+    // This ensures calculations match the user's selected month/year
+    const currentMonth = selectedMonth;
+    const currentYear = selectedYear;
     
     return employees.map(emp => {
       const empRecords = attendanceRecords.filter(r => {
@@ -108,17 +109,25 @@ export function AnalisaKehadiran() {
         endDate: h.endDate
       }));
       
-      const totalDays = calculateBusinessDays(
+      // Calculate total business days in the month (excluding weekends and holidays)
+      const totalBusinessDays = calculateBusinessDays(
         new Date(currentYear, currentMonth, 1),
         new Date(currentYear, currentMonth + 1, 0),
         holidayDates
       );
 
+      // Absen = days the employee actually submitted attendance
+      const absenCount = empRecords.length;
+      
+      // Tidak Absen = business days minus days they submitted attendance
+      const tidakAbsenCount = totalBusinessDays - absenCount;
+
       return {
         employee: emp,
         lateCount,
-        absentCount: totalDays - empRecords.length,
-        totalRecords: empRecords.length,
+        absenCount,        // Days submitted
+        tidakAbsenCount,   // Days missed
+        totalBusinessDays, // Total working days in month
       };
     });
   };
@@ -458,20 +467,29 @@ export function AnalisaKehadiran() {
             {monthlyStats.map((stat) => (
               <div key={stat.employee.id} className="card-3d p-4">
                 <div className="flex justify-between items-start">
-                  <div>
+                  <div className="w-full">
                     <h4 className="font-semibold text-gray-100">
                       {stat.employee.initial} - {stat.employee.fullName}
                     </h4>
-                    <div className="flex gap-4 mt-2">
-                      <span className="text-sm text-gray-300">
-                        <span className="text-purple-400 font-medium">Telat:</span> {stat.lateCount} hari
-                      </span>
-                      <span className="text-sm text-gray-300">
-                        <span className="text-red-400 font-medium">Tidak Absen:</span> {stat.absentCount} hari
-                      </span>
+                    <div className="grid grid-cols-3 gap-2 mt-3">
+                      <div className="bg-green-900/30 p-2 rounded text-center">
+                        <p className="text-xs text-green-400">Absen</p>
+                        <p className="text-lg font-bold text-green-400">{stat.absenCount}</p>
+                        <p className="text-xs text-gray-500">hari</p>
+                      </div>
+                      <div className="bg-red-900/30 p-2 rounded text-center">
+                        <p className="text-xs text-red-400">Tidak Absen</p>
+                        <p className="text-lg font-bold text-red-400">{stat.tidakAbsenCount}</p>
+                        <p className="text-xs text-gray-500">hari</p>
+                      </div>
+                      <div className="bg-purple-900/30 p-2 rounded text-center">
+                        <p className="text-xs text-purple-400">Telat</p>
+                        <p className="text-lg font-bold text-purple-400">{stat.lateCount}</p>
+                        <p className="text-xs text-gray-500">hari</p>
+                      </div>
                     </div>
-                    <p className="text-xs text-gray-500 mt-2">
-                      Total absen: {stat.totalRecords} hari
+                    <p className="text-xs text-gray-500 mt-2 text-center">
+                      Total hari kerja: {stat.totalBusinessDays} hari (tidak termasuk libur)
                     </p>
                   </div>
                 </div>
@@ -523,13 +541,14 @@ export function AnalisaKehadiran() {
 
   function exportToExcel() {
     // Create CSV content
-    const headers = ['Inisial', 'Nama Lengkap', 'Telat (hari)', 'Tidak Absen (hari)', 'Total Absen (hari)'];
+    const headers = ['Inisial', 'Nama Lengkap', 'Absen (hari)', 'Tidak Absen (hari)', 'Telat (hari)', 'Total Hari Kerja'];
     const rows = monthlyStats.map(stat => [
       stat.employee.initial,
       stat.employee.fullName,
+      stat.absenCount,
+      stat.tidakAbsenCount,
       stat.lateCount,
-      stat.absentCount,
-      stat.totalRecords
+      stat.totalBusinessDays
     ]);
     
     const csvContent = [
