@@ -50,9 +50,26 @@ export function AnalisaKehadiran() {
     }, 1000);
   };
 
-  // Get today's records
-  const today = new Date().toISOString().split('T')[0];
-  const todayRecords = attendanceRecords.filter(r => r.timestamp.startsWith(today));
+  // Get today's records using local timezone (Indonesia/WIB)
+  const now = new Date();
+  const today = now.getFullYear() + '-' + 
+    String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+    String(now.getDate()).padStart(2, '0');
+  
+  // Debug logging
+  console.log('[AnalisaKehadiran] Today date (local):', today);
+  console.log('[AnalisaKehadiran] Total attendance records:', attendanceRecords.length);
+  console.log('[AnalisaKehadiran] All records timestamps:', attendanceRecords.map(r => r.timestamp));
+  
+  const todayRecords = attendanceRecords.filter(r => {
+    const recordDate = r.timestamp.split('T')[0];
+    const isToday = recordDate === today;
+    console.log(`[AnalisaKehadiran] Checking record ${r.employeeInitial}: ${recordDate} === ${today} ? ${isToday}`);
+    return isToday;
+  });
+  
+  console.log('[AnalisaKehadiran] Today records count:', todayRecords.length);
+  console.log('[AnalisaKehadiran] Today records:', todayRecords.map(r => ({ name: r.employeeName, timestamp: r.timestamp })));
   
   // Get employees who have NOT submitted today
   const employeesWhoDidNotSubmit = employees.filter(
