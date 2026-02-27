@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppStore } from '../../store/useAppStore';
-import { formatTime, calculateBusinessDays } from '../../utils/timeUtils';
+import { formatTime, calculateBusinessDays, formatDate } from '../../utils/timeUtils';
 import type { HealthCondition, Holiday } from '../../types';
+import { database } from '../../firebase/config';
+import { ref, onValue } from 'firebase/database';
 
 type TabType = 'harian' | 'bulanan';
 
@@ -10,12 +12,43 @@ export function AnalisaKehadiran() {
   const [activeTab, setActiveTab] = useState<TabType>('harian');
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
   
+  // Connection status
+  const [isConnected, setIsConnected] = useState<boolean | null>(null);
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  
   // Holiday CRUD states
   const [showHolidayForm, setShowHolidayForm] = useState(false);
   const [holidayDate, setHolidayDate] = useState('');
+  const [holidayEndDate, setHolidayEndDate] = useState('');
+  const [isMultiDay, setIsMultiDay] = useState(false);
   const [holidayName, setHolidayName] = useState('');
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
+  // Monitor Firebase connection status
+  useEffect(() => {
+    const connectedRef = ref(database, '.info/connected');
+    const unsubscribe = onValue(connectedRef, (snap) => {
+      const connected = snap.val() === true;
+      setIsConnected(connected);
+      if (connected) {
+        setLastSyncTime(new Date());
+      }
+    });
+    
+    return () => unsubscribe();
+  }, []);
+
+  // Manual refresh function
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    // Force re-render by updating state
+    setTimeout(() => {
+      setLastSyncTime(new Date());
+      setIsRefreshing(false);
+    }, 1000);
+  };
 
   // Get today's records
   const today = new Date().toISOString().split('T')[0];
@@ -51,10 +84,17 @@ export function AnalisaKehadiran() {
       });
 
       const lateCount = empRecords.filter(r => r.status === 'late').length;
+      
+      // Convert holidays to format expected by calculateBusinessDays
+      const holidayDates = holidays.map(h => ({
+        date: h.date,
+        endDate: h.endDate
+      }));
+      
       const totalDays = calculateBusinessDays(
         new Date(currentYear, currentMonth, 1),
         new Date(currentYear, currentMonth + 1, 0),
-        holidays.map(h => h.date)
+        holidayDates
       );
 
       return {
@@ -70,6 +110,45 @@ export function AnalisaKehadiran() {
 
   return (
     <div>
+      {/* Connection Status Bar */}
+      <div className="mb-4 p-3 bg-gray-800 rounded-lg flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+          <span className="text-sm text-gray-300">
+            {isConnected === null ? 'Memeriksa koneksi...' : 
+             isConnected ? 'Terhubung ke Firebase' : 'Tidak terhubung'}
+          </span>
+          {lastSyncTime && (
+            <span className="text-xs text-gray-500">
+              (Sync: {lastSyncTime.toLocaleTimeString('id-ID')})
+            </span>
+          )}
+        </div>
+        <button
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          className="text-sm px-3 py-1 bg-primary/20 text-primary rounded hover:bg-primary/30 transition-smooth disabled:opacity-50"
+        >
+          {isRefreshing ? '⏳ Refresh...' : '🔄 Refresh'}
+        </button>
+      </div>
+
+      {/* Data Summary */}
+      <div className="mb-4 grid grid-cols-3 gap-2">
+        <div className="bg-gray-800 p-2 rounded text-center">
+          <p className="text-xs text-gray-500">Karyawan</p>
+          <p className="text-lg font-bold text-primary">{employees.length}</p>
+        </div>
+        <div className="bg-gray-800 p-2 rounded text-center">
+          <p className="text-xs text-gray-500">Absen Hari Ini</p>
+          <p className="text-lg font-bold text-green-400">{todayRecords.length}</p>
+        </div>
+        <div className="bg-gray-800 p-2 rounded text-center">
+          <p className="text-xs text-gray-500">Total Records</p>
+          <p className="text-lg font-bold text-blue-400">{attendanceRecords.length}</p>
+        </div>
+      </div>
+
       {/* Tabs */}
       <div className="flex gap-2 mb-4">
         <div className="btn-wrapper flex-1">
@@ -264,6 +343,25 @@ export function AnalisaKehadiran() {
             
             {showHolidayForm && (
               <form onSubmit={handleAddHoliday} className="space-y-2 mb-3">
+                {/* Multi-day toggle */}
+                <div className="flex items-center gap-2 mb-2">
+                  <input
+                    type="checkbox"
+                    id="multiDay"
+                    checked={isMultiDay}
+                    onChange={(e) => {
+                      setIsMultiDay(e.target.checked);
+                      if (!e.target.checked) {
+                        setHolidayEndDate('');
+                      }
+                    }}
+                    className="w-4 h-4 rounded border-gray-600"
+                  />
+                  <label htmlFor="multiDay" className="text-sm text-gray-300">
+                    Libur beberapa hari
+                  </label>
+                </div>
+
                 <input
                   type="date"
                   value={holidayDate}
@@ -271,6 +369,21 @@ export function AnalisaKehadiran() {
                   className="w-full p-2 border border-gray-700 rounded-card text-sm input-3d text-gray-100"
                   required
                 />
+                
+                {isMultiDay && (
+                  <div className="space-y-1">
+                    <label className="text-xs text-gray-500">Sampai tanggal:</label>
+                    <input
+                      type="date"
+                      value={holidayEndDate}
+                      onChange={(e) => setHolidayEndDate(e.target.value)}
+                      min={holidayDate}
+                      className="w-full p-2 border border-gray-700 rounded-card text-sm input-3d text-gray-100"
+                      required={isMultiDay}
+                    />
+                  </div>
+                )}
+                
                 <input
                   type="text"
                   value={holidayName}
@@ -303,7 +416,13 @@ export function AnalisaKehadiran() {
                   <div key={holiday.id} className="flex justify-between items-center bg-gray-800 p-2 rounded">
                     <div>
                       <p className="text-sm font-medium text-gray-100">{holiday.name}</p>
-                      <p className="text-xs text-gray-500">{holiday.date}</p>
+                      <p className="text-xs text-gray-500">
+                        {holiday.isMultiDay && holiday.endDate 
+                          ? `${formatDate(holiday.date)} - ${formatDate(holiday.endDate)}`
+                          : formatDate(holiday.date)
+                        }
+                        {holiday.isMultiDay && <span className="ml-1 text-primary">({getHolidayDuration(holiday)} hari)</span>}
+                      </p>
                     </div>
                     <button
                       onClick={() => deleteHoliday(holiday.id)}
@@ -350,20 +469,38 @@ export function AnalisaKehadiran() {
     </div>
   );
 
+  function getHolidayDuration(holiday: Holiday): number {
+    if (!holiday.endDate) return 1;
+    const start = new Date(holiday.date);
+    const end = new Date(holiday.endDate);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+  }
+
   function handleAddHoliday(e: React.FormEvent) {
     e.preventDefault();
     if (!holidayDate || !holidayName) return;
     
+    // Validate multi-day holiday
+    if (isMultiDay && !holidayEndDate) {
+      alert('Silakan pilih tanggal akhir untuk libur beberapa hari');
+      return;
+    }
+    
     const newHoliday: Holiday = {
       id: Date.now().toString(),
       date: holidayDate,
+      endDate: isMultiDay ? holidayEndDate : undefined,
       name: holidayName,
       isCustom: true,
+      isMultiDay: isMultiDay,
     };
     
     addHoliday(newHoliday);
     setHolidayDate('');
+    setHolidayEndDate('');
     setHolidayName('');
+    setIsMultiDay(false);
     setShowHolidayForm(false);
   }
 

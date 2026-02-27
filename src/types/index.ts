@@ -147,7 +147,9 @@ export interface Note {
 // Holiday Types
 export interface Holiday {
   id: string;
-  date: string;
+  date: string;          // Start date (for backward compatibility)
+  endDate?: string;      // End date for multi-day holidays (optional)
   name: string;
   isCustom: boolean;
+  isMultiDay?: boolean;  // Flag to indicate if this is a multi-day holiday
 }

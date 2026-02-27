@@ -86,13 +86,47 @@ export function isMCUExpired(mcuDate: string): boolean {
 }
 
 /**
+ * Expand multi-day holidays into individual date strings
+ * Supports both single dates (string) and multi-day holidays (object with date and endDate)
+ */
+export function expandHolidaysToDates(holidays: (string | { date: string; endDate?: string })[]): string[] {
+  const expandedDates: string[] = [];
+  
+  for (const holiday of holidays) {
+    if (typeof holiday === 'string') {
+      // Single day holiday (backward compatibility)
+      expandedDates.push(holiday);
+    } else if (holiday.endDate) {
+      // Multi-day holiday - expand to all dates in range
+      const start = new Date(holiday.date);
+      const end = new Date(holiday.endDate);
+      const current = new Date(start);
+      
+      while (current <= end) {
+        expandedDates.push(current.toISOString().split('T')[0]);
+        current.setDate(current.getDate() + 1);
+      }
+    } else {
+      // Single day holiday (new format)
+      expandedDates.push(holiday.date);
+    }
+  }
+  
+  return expandedDates;
+}
+
+/**
  * Calculate business days between two dates (excluding weekends and holidays)
+ * Now supports multi-day holidays
  */
 export function calculateBusinessDays(
   startDate: Date,
   endDate: Date,
-  holidays: string[] = []
+  holidays: (string | { date: string; endDate?: string })[] = []
 ): number {
+  // Expand multi-day holidays to individual dates
+  const expandedHolidays = expandHolidaysToDates(holidays);
+  
   let count = 0;
   const current = new Date(startDate);
 
@@ -101,7 +135,7 @@ export function calculateBusinessDays(
     const dateString = current.toISOString().split('T')[0];
     
     // Skip weekends (0 = Sunday, 6 = Saturday)
-    if (dayOfWeek !== 0 && dayOfWeek !== 6 && !holidays.includes(dateString)) {
+    if (dayOfWeek !== 0 && dayOfWeek !== 6 && !expandedHolidays.includes(dateString)) {
       count++;
     }
     
