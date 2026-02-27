@@ -106,7 +106,7 @@ export function AnalisaKehadiran() {
       // Convert holidays to format expected by calculateBusinessDays
       const holidayDates = holidays.map(h => ({
         date: h.date,
-        endDate: h.endDate
+        endDate: h.endDate || undefined
       }));
       
       // Calculate total business days in the month (excluding weekends and holidays)
@@ -442,13 +442,14 @@ export function AnalisaKehadiran() {
                   <div key={holiday.id} className="flex justify-between items-center bg-gray-800 p-2 rounded">
                     <div>
                       <p className="text-sm font-medium text-gray-100">{holiday.name}</p>
-                      <p className="text-xs text-gray-500">
-                        {holiday.isMultiDay && holiday.endDate 
-                          ? `${formatDate(holiday.date)} - ${formatDate(holiday.endDate)}`
-                          : formatDate(holiday.date)
-                        }
-                        {holiday.isMultiDay && <span className="ml-1 text-primary">({getHolidayDuration(holiday)} hari)</span>}
-                      </p>
+                    <p className="text-xs text-gray-500">
+                      {holiday.isMultiDay && holiday.endDate 
+                        ? `${formatDate(holiday.date)} - ${formatDate(holiday.endDate)}`
+                        : formatDate(holiday.date)
+                      }
+                      {holiday.isMultiDay && holiday.endDate && <span className="ml-1 text-primary">({getHolidayDuration(holiday)} hari)</span>}
+                    </p>
+
                     </div>
                     <button
                       onClick={() => deleteHoliday(holiday.id)}
@@ -528,7 +529,7 @@ export function AnalisaKehadiran() {
       endDate: isMultiDay ? holidayEndDate : undefined,
       name: holidayName,
       isCustom: true,
-      isMultiDay: isMultiDay,
+      isMultiDay: isMultiDay || undefined,
     };
     
     addHoliday(newHoliday);
