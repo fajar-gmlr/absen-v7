@@ -2,6 +2,48 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+- Full-screen notification modal on app startup for unacknowledged notifications
+  - Shows ALL unacknowledged notifications in queue (one by one)
+  - User must click "Saya Sudah Membaca" to acknowledge each notification
+  - Modal persists until all notifications are acknowledged
+  - Shows progress indicator (e.g., "1 dari 3 pengumuman")
+  - Lists all pending notifications with status indicators
+  - Prevents users from ignoring important announcements
+  - Toast notifications still appear for new notifications after initial load
+
+### Changed
+- Fixed `AnalisaKehadiran` typescript and logic errors
+  - Fixed logic for "Tidak Absen" in monthly statistics by ignoring weekends properly instead of mathematical substraction (`calculateAbsentDays`).
+  - Added strict TS typing for variables like `stat`, `row`, `h`, `r` in `exportToExcel`, `filter` arrays to avoid implicit any errors.
+  - Formatted `ISOSting` conversion correctly depending on local timezone offset with local string.
+- Enhanced AnalisaKehadiran (Attendance Analysis) with improved logic:
+  - Added `getAttendanceStatus` function to determine attendance status based on timestamp:
+    - 05:00 - 10:00 → 'ontime' (Tepat waktu)
+    - 10:01 - 17:00 → 'late' (Telat)
+    - < 05:00 or > 17:00 → 'invalid' (Tidak Absen/Ditolak)
+  - Daily records now filter only valid timestamps (not more than 17:00)
+  - Monthly statistics now:
+    - Filters valid attendance records only (excludes invalid timestamps)
+    - Prevents duplicate attendance on same day using unique date sets
+    - Accurate "Tidak Absen" calculation based on passed business days
+    - Different logic for current month (up to today), past months, and future months
+  - "Belum Absen" section now includes employees with invalid timestamps
+  - Refactored into modular components (under 500 lines total):
+    - `ConnectionStatusBar.tsx` - Firebase connection status and refresh
+    - `DailyView.tsx` - Daily attendance display
+    - `MonthlyView.tsx` - Monthly statistics and holiday management
+
+### Security
+- Moved Firebase API key from hardcoded config to environment variables
+  - Created `.env.example` template file for documentation
+  - Updated `src/firebase/config.ts` to use `import.meta.env`
+  - Added `.env` to `.gitignore` to prevent accidental commits
+  - Updated `DEPLOYMENT_GUIDE.md` with environment variables setup instructions
+  - **IMPORTANT**: Existing `.env` file contains the API key and is NOT tracked in git
+
 ## [0.0.9] - 2025-01-09
 
 ### Fixed

@@ -84,8 +84,6 @@ export function Notepad() {
         <div className="flex gap-2 mb-4">
           <div className="btn-wrapper flex-1">
             <button onClick={handleNewNote} className="btn w-full py-2">
-              <span className="btn-letter">+</span>
-              <span className="btn-letter"> </span>
               <span className="btn-letter">C</span>
               <span className="btn-letter">a</span>
               <span className="btn-letter">t</span>
@@ -203,8 +201,6 @@ export function Notepad() {
                 <p className="mt-4 text-gray-400">Pilih catatan atau buat baru</p>
                 <div className="btn-wrapper mt-4">
                   <button onClick={handleNewNote} className="btn px-6 py-2">
-                    <span className="btn-letter">+</span>
-                    <span className="btn-letter"> </span>
                     <span className="btn-letter">C</span>
                     <span className="btn-letter">a</span>
                     <span className="btn-letter">t</span>

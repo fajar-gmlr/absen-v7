@@ -46,6 +46,7 @@ export function Absensi() {
       { key: 'yesterdayWork', value: yesterdayWork },
       { key: 'todayWork', value: todayWork },
       { key: 'tomorrowAgenda', value: tomorrowAgenda },
+      { key: 'suggestions', value: suggestions },
     ];
 
     // 2. Only require customWorkLocation if "Lainnya" is selected
@@ -282,14 +283,14 @@ export function Absensi() {
           {/* Suggestions */}
           <div className="card-3d rounded-card p-4">
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Saran dan/atau Laporan
+              Saran dan/atau Laporan <span className="text-danger">*</span>
             </label>
             <textarea
               value={suggestions}
               onChange={(e) => setSuggestions(e.target.value)}
               rows={2}
               placeholder="Saran atau laporan lainnya..."
-              className="w-full px-4 py-3 rounded-input input-3d text-gray-100 placeholder-gray-500 focus:outline-none min-h-touch"
+              className={inputClass('suggestions')}
             />
           </div>
 

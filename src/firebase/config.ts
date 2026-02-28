@@ -9,17 +9,22 @@ import type {
   Holiday 
 } from '../types';
 
-// Firebase configuration
+// Firebase configuration from environment variables
 const firebaseConfig = {
-  apiKey: "AIzaSyCeW5m1oRiipSiBmP8ZJ-tna1yNJJp_YlU",
-  authDomain: "tdrsbs1.firebaseapp.com",
-  projectId: "tdrsbs1",
-  storageBucket: "tdrsbs1.firebasestorage.app",
-  messagingSenderId: "121873519061",
-  appId: "1:121873519061:web:55f403b4c75e17e9b7ed5c",
-  measurementId: "G-ZL9W7KT1NF",
-  databaseURL: "https://tdrsbs1-default-rtdb.asia-southeast1.firebasedatabase.app"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL
 };
+
+// Validate configuration
+if (!firebaseConfig.apiKey) {
+  console.error('[Firebase] ERROR: VITE_FIREBASE_API_KEY is not set. Please check your .env file.');
+}
 
 // Initialize Firebase
 console.log('[Firebase] Initializing with database URL:', firebaseConfig.databaseURL);
@@ -35,8 +40,6 @@ onValue(connectedRef, (snap) => {
     console.log('[Firebase] Connection state: DISCONNECTED');
   }
 });
-
-
 
 // Database references
 const dbRef = {
@@ -67,7 +70,6 @@ export const syncEmployees = (callback: (employees: Employee[]) => void) => {
   });
 };
 
-
 export const addEmployeeToDb = async (employee: Employee) => {
   try {
     console.log('[Firebase] Adding employee:', employee);
@@ -80,8 +82,6 @@ export const addEmployeeToDb = async (employee: Employee) => {
     throw error;
   }
 };
-
-
 
 export const updateEmployeeInDb = async (id: string, employee: Partial<Employee>) => {
   const empRef = ref(database, `employees/${id}`);
@@ -146,7 +146,6 @@ export const deleteNotificationFromDb = async (id: string) => {
   const notifRef = ref(database, `notifications/${id}`);
   await remove(notifRef);
 };
-
 
 // Note operations
 export const syncNotes = (callback: (notes: Note[]) => void) => {

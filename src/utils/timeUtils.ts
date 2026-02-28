@@ -91,7 +91,7 @@ export function isMCUExpired(mcuDate: string): boolean {
  */
 export function expandHolidaysToDates(holidays: (string | { date: string; endDate?: string })[]): string[] {
   const expandedDates: string[] = [];
-  
+
   for (const holiday of holidays) {
     if (typeof holiday === 'string') {
       // Single day holiday (backward compatibility)
@@ -101,7 +101,7 @@ export function expandHolidaysToDates(holidays: (string | { date: string; endDat
       const start = new Date(holiday.date);
       const end = new Date(holiday.endDate);
       const current = new Date(start);
-      
+
       while (current <= end) {
         expandedDates.push(current.toISOString().split('T')[0]);
         current.setDate(current.getDate() + 1);
@@ -111,7 +111,7 @@ export function expandHolidaysToDates(holidays: (string | { date: string; endDat
       expandedDates.push(holiday.date);
     }
   }
-  
+
   return expandedDates;
 }
 
@@ -126,21 +126,61 @@ export function calculateBusinessDays(
 ): number {
   // Expand multi-day holidays to individual dates
   const expandedHolidays = expandHolidaysToDates(holidays);
-  
-  let count = 0;
-  const current = new Date(startDate);
 
-  while (current <= endDate) {
+  let count = 0;
+  const current = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+  const end = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+
+  while (current <= end) {
     const dayOfWeek = current.getDay();
-    const dateString = current.toISOString().split('T')[0];
-    
+    const yyyy = current.getFullYear();
+    const mm = String(current.getMonth() + 1).padStart(2, '0');
+    const dd = String(current.getDate()).padStart(2, '0');
+    const dateString = `${yyyy}-${mm}-${dd}`;
+
     // Skip weekends (0 = Sunday, 6 = Saturday)
     if (dayOfWeek !== 0 && dayOfWeek !== 6 && !expandedHolidays.includes(dateString)) {
       count++;
     }
-    
+
     current.setDate(current.getDate() + 1);
   }
 
   return count;
+}
+
+/**
+ * Calculate true absent business days (ignoring check-ins on weekends)
+ */
+export function calculateAbsentDays(
+  startDate: Date,
+  endDate: Date,
+  presentDates: Set<string>,
+  holidays: (string | { date: string; endDate?: string })[] = []
+): number {
+  const expandedHolidays = expandHolidaysToDates(holidays);
+
+  let absentCount = 0;
+  const current = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+  const end = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+
+  while (current <= end) {
+    const dayOfWeek = current.getDay();
+    const yyyy = current.getFullYear();
+    const mm = String(current.getMonth() + 1).padStart(2, '0');
+    const dd = String(current.getDate()).padStart(2, '0');
+    const dateString = `${yyyy}-${mm}-${dd}`;
+
+    // If it's a standard business day...
+    if (dayOfWeek !== 0 && dayOfWeek !== 6 && !expandedHolidays.includes(dateString)) {
+      // And the employee didn't clock in...
+      if (!presentDates.has(dateString)) {
+        absentCount++;
+      }
+    }
+
+    current.setDate(current.getDate() + 1);
+  }
+
+  return absentCount;
 }

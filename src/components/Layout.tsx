@@ -7,11 +7,11 @@ interface LayoutProps {
 }
 
 const navItems = [
-  { path: '/absensi', label: 'Absensi', icon: '📝' },
-  { path: '/notifikasi', label: 'Notifikasi', icon: '🔔' },
-  { path: '/managerial', label: 'Managerial', icon: '⚙️' },
-  { path: '/toolbox', label: 'Toolbox', icon: '🔧' },
-  { path: '/notepad', label: 'Notepad', icon: '📒' },
+  { path: '/absensi', label: 'Absensi' },
+  { path: '/notifikasi', label: 'Notifikasi' },
+  { path: '/managerial', label: 'Managerial' },
+  { path: '/toolbox', label: 'Toolbox' },
+  { path: '/notepad', label: 'Notepad' },
 ];
 
 export function Layout({ children, title }: LayoutProps) {
@@ -38,9 +38,8 @@ export function Layout({ children, title }: LayoutProps) {
                 isActive ? 'btn-wrapper' : 'btn-wrapper opacity-60 hover:opacity-100'
               }
             >
-              <div className="btn py-2 px-3">
-                <span className="text-lg mr-1">{item.icon}</span>
-                <span className="btn-letter text-xs">{item.label}</span>
+              <div className="btn py-2 px-2">
+                <span className="btn-letter text-xs whitespace-nowrap">{item.label}</span>
               </div>
             </NavLink>
           ))}

@@ -83,7 +83,7 @@ export function Managerial() {
     <Layout title="Managerial">
       <div className="p-4">
         {/* Sub-navigation for Managerial sections */}
-        <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+        <div className="flex gap-2 mb-4 overflow-x-auto pb-2 justify-center">
           <NavLink
             to="/managerial/karyawan"
             className={({ isActive }) =>
@@ -132,13 +132,11 @@ export function Managerial() {
             <span className="btn-letter">u</span>
             <span className="btn-letter">a</span>
             <span className="btn-letter">r</span>
-            <span className="btn-letter"> </span>
-            <span className="btn-letter">d</span>
+            <span className="btn-letter ml-1">d</span>
             <span className="btn-letter">a</span>
             <span className="btn-letter">r</span>
             <span className="btn-letter">i</span>
-            <span className="btn-letter"> </span>
-            <span className="btn-letter">M</span>
+            <span className="btn-letter ml-1">M</span>
             <span className="btn-letter">a</span>
             <span className="btn-letter">n</span>
             <span className="btn-letter">a</span>
