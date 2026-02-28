@@ -147,7 +147,7 @@ export function AnalisaKehadiran() {
     setHolidayEndDate('');
     setHolidayName('');
     setIsMultiDay(false);
-    setShowHolidayForm(false);
+    // Keep form open for adding multiple holidays
   };
 
   // Export to Excel
