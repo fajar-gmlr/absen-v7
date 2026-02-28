@@ -136,14 +136,20 @@ export function AnalisaKehadiran() {
       return;
     }
 
+    // Build holiday object - only include endDate for multi-day holidays
+    // Firebase doesn't allow undefined values
     const newHoliday: Holiday = {
       id: Date.now().toString(),
       date: holidayDate,
-      endDate: isMultiDay ? holidayEndDate : undefined,
       name: holidayName,
       isCustom: true,
       isMultiDay: isMultiDay || false,
     };
+
+    // Only add endDate for multi-day holidays
+    if (isMultiDay && holidayEndDate) {
+      newHoliday.endDate = holidayEndDate;
+    }
 
     console.log('[AnalisaKehadiran] Adding holiday:', JSON.stringify(newHoliday));
 
