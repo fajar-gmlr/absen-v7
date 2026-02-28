@@ -2,6 +2,8 @@ import { formatTime } from '../../../utils/timeUtils';
 import type { AttendanceRecord, HealthCondition } from '../../../types';
 
 interface DailyViewProps {
+  dailyDate: string;
+  onDailyDateChange: (date: string) => void;
   todayRecords: AttendanceRecord[];
   employeesWhoDidNotSubmit: { id: string; initial: string; fullName: string }[];
   employees: { id: string; initial: string; fullName: string }[];
@@ -12,6 +14,8 @@ interface DailyViewProps {
 }
 
 export function DailyView({
+  dailyDate,
+  onDailyDateChange,
   todayRecords,
   employeesWhoDidNotSubmit,
   employees,
@@ -22,6 +26,15 @@ export function DailyView({
 }: DailyViewProps) {
   return (
     <div className="space-y-6">
+      <div className="bg-gray-800 p-4 rounded-lg flex items-center justify-between">
+        <label className="text-gray-300 font-medium">Berdasarkan Tanggal:</label>
+        <input
+          type="date"
+          value={dailyDate}
+          onChange={(e) => onDailyDateChange(e.target.value)}
+          className="input max-w-[200px]"
+        />
+      </div>
       {/* Employees who submitted */}
       <div>
         <h3 className="font-semibold text-gray-100 mb-3">
@@ -34,9 +47,8 @@ export function DailyView({
               <div key={record.id}>
                 <button
                   onClick={() => onToggleCard(expandedCard === record.id ? null : record.id)}
-                  className={`w-full card-3d p-3 text-left transition-smooth ${
-                    isLate ? 'border-l-4 border-late' : ''
-                  }`}
+                  className={`w-full card-3d p-3 text-left transition-smooth ${isLate ? 'border-l-4 border-late' : ''
+                    }`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -55,7 +67,7 @@ export function DailyView({
                     </span>
                   </div>
                 </button>
-                
+
                 {expandedCard === record.id && (
                   <div className="card-3d p-3 mt-1 card-expanded">
                     <p className="text-sm text-gray-300">

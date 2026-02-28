@@ -14,25 +14,8 @@ This is the **recommended** deployment method. Vercel automatically deploys when
 1. **Commit your changes**
    
 ```
-bash
-   git add .
-   git commit -m "Your commit message"
-   
-```
-
-2. **Push to GitHub main branch**
-   
-```
-bash
-   git push origin master:main
-   
-```
-   Or if you're already on main branch:
-   
-```
-bash
-   git push origin main
-   
+```bash
+    git push origin main
 ```
 
 3. **Vercel auto-deploys**
@@ -87,22 +70,18 @@ Only use this if GitHub auto-deploy is not working.
 
 ### Steps
 1. **Link to existing project**
-   
-```
-bash
-   vercel link
-   
+   If this is your very first time bypassing GitHub:
+```bash
+   npx vercel link
 ```
    - Select "Y" to set up
    - Choose "Fajar Gumelar's projects"
    - Select "absen-v7" (NOT absen-v7-main)
 
 2. **Deploy to production**
-   
-```
-bash
-   vercel --prod
-   
+   Run the following command in your terminal to force-push directly to Vercel production:
+```bash
+   npx vercel --prod --yes
 ```
 
 ---
@@ -177,18 +156,11 @@ npm run build
 
 ## Quick Reference Commands
 
-```
-bash
-# Test locally
-npm run dev
-
-# Build check
-npm run build
-
+```bash
 # Push to GitHub (triggers auto-deploy)
 git add .
 git commit -m "Your message"
-git push origin master:main
+git push origin main
 
 # Check status
 git status

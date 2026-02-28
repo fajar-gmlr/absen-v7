@@ -35,19 +35,23 @@ export function AnalisaKehadiran() {
     return 'invalid';
   };
 
-  // Get today's date string
-  const now = new Date();
-  const today = now.getFullYear() + '-' +
-    String(now.getMonth() + 1).padStart(2, '0') + '-' +
-    String(now.getDate()).padStart(2, '0');
+  // Get local today string
+  const getLocalToday = () => {
+    const now = new Date();
+    return now.getFullYear() + '-' +
+      String(now.getMonth() + 1).padStart(2, '0') + '-' +
+      String(now.getDate()).padStart(2, '0');
+  };
 
-  // Filter today's valid records
+  const [dailyDate, setDailyDate] = useState<string>(getLocalToday());
+
+  // Filter valid records for selected date
   const todayRecords = useMemo(() =>
     attendanceRecords.filter((r: AttendanceRecord) => {
       const recordDate = r.timestamp.split('T')[0];
       const status = getAttendanceStatus(r.timestamp);
-      return recordDate === today && status !== 'invalid';
-    }), [attendanceRecords, today]);
+      return recordDate === dailyDate && status !== 'invalid';
+    }), [attendanceRecords, dailyDate]);
 
   // Employees who did not submit
   const employeesWhoDidNotSubmit = useMemo(() =>
@@ -221,6 +225,8 @@ export function AnalisaKehadiran() {
 
       {activeTab === 'harian' ? (
         <DailyView
+          dailyDate={dailyDate}
+          onDailyDateChange={setDailyDate}
           todayRecords={todayRecords}
           employeesWhoDidNotSubmit={employeesWhoDidNotSubmit}
           employees={employees}

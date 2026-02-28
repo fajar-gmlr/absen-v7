@@ -15,6 +15,7 @@ All notable changes to this project will be documented in this file.
   - Toast notifications still appear for new notifications after initial load
 
 ### Changed
+- Added Date Picker functionality in Harian Tab. Records no longer fallback to just strictly computer's `new Date()`. Instead, managers can arbitrarily pick any history date in daily metrics.
 - Fixed `AnalisaKehadiran` typescript and logic errors
   - Fixed logic for "Tidak Absen" in monthly statistics by ignoring weekends properly instead of mathematical substraction (`calculateAbsentDays`).
   - Added strict TS typing for variables like `stat`, `row`, `h`, `r` in `exportToExcel`, `filter` arrays to avoid implicit any errors.
