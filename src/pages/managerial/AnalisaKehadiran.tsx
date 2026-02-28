@@ -124,9 +124,12 @@ export function AnalisaKehadiran() {
   }, [employees, attendanceRecords, holidays, selectedMonth, selectedYear]);
 
   // Handle add holiday
-  const handleAddHoliday = (e: React.FormEvent) => {
+  const handleAddHoliday = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!holidayDate || !holidayName) return;
+    if (!holidayDate || !holidayName) {
+      alert('Silakan isi nama hari libur dan tanggal');
+      return;
+    }
 
     if (isMultiDay && !holidayEndDate) {
       alert('Silakan pilih tanggal akhir untuk libur beberapa hari');
@@ -142,12 +145,21 @@ export function AnalisaKehadiran() {
       isMultiDay: isMultiDay || false,
     };
 
-    addHoliday(newHoliday);
-    setHolidayDate('');
-    setHolidayEndDate('');
-    setHolidayName('');
-    setIsMultiDay(false);
-    // Keep form open for adding multiple holidays
+    console.log('[AnalisaKehadiran] Adding holiday:', JSON.stringify(newHoliday));
+
+    try {
+      await addHoliday(newHoliday);
+      console.log('[AnalisaKehadiran] Holiday added successfully');
+      alert(`Hari libur "${holidayName}" berhasil ditambahkan!`);
+      setHolidayDate('');
+      setHolidayEndDate('');
+      setHolidayName('');
+      setIsMultiDay(false);
+      // Keep form open for adding multiple holidays
+    } catch (error) {
+      console.error('[AnalisaKehadiran] Error adding holiday:', error);
+      alert('Gagal menambahkan hari libur. Silakan coba lagi.');
+    }
   };
 
   // Export to Excel
