@@ -196,9 +196,16 @@ export const syncHolidays = (callback: (holidays: Holiday[]) => void) => {
 };
 
 export const addHolidayToDb = async (holiday: Holiday) => {
-  const newRef = push(dbRef.holidays);
-  await set(newRef, holiday);
-  return newRef.key;
+  try {
+    console.log('[Firebase] Adding holiday:', JSON.stringify(holiday));
+    const newRef = push(dbRef.holidays);
+    await set(newRef, holiday);
+    console.log('[Firebase] Holiday added successfully:', newRef.key);
+    return newRef.key;
+  } catch (error) {
+    console.error('[Firebase] Error adding holiday:', error);
+    throw error;
+  }
 };
 
 export const deleteHolidayFromDb = async (id: string) => {

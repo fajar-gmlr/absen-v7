@@ -145,8 +145,14 @@ export const useAppStore = create<AppState>()((set, get) => {
     // Holidays
     holidays: [],
     addHoliday: async (holiday) => {
-      console.log('[Store] Adding holiday:', holiday);
-      await addHolidayToDb(holiday);
+      console.log('[Store] Adding holiday:', JSON.stringify(holiday));
+      try {
+        await addHolidayToDb(holiday);
+        console.log('[Store] Holiday added successfully');
+      } catch (error) {
+        console.error('[Store] Error adding holiday:', error);
+        throw error;
+      }
     },
     deleteHoliday: async (id) => {
       console.log('[Store] Deleting holiday:', id);
