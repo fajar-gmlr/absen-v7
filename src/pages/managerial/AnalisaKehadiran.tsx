@@ -139,7 +139,7 @@ export function AnalisaKehadiran() {
       endDate: isMultiDay ? holidayEndDate : undefined,
       name: holidayName,
       isCustom: true,
-      isMultiDay: isMultiDay || undefined,
+      isMultiDay: isMultiDay || false,
     };
 
     addHoliday(newHoliday);
