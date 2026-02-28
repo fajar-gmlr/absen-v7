@@ -17,7 +17,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - Added Date Picker functionality in Harian Tab. Records no longer fallback to just strictly computer's `new Date()`. Instead, managers can arbitrarily pick any history date in daily metrics.
 - Fixed holiday form to allow adding multiple holidays in one session (form stays open after adding)
-- Fixed single-day holiday storage issue - added proper async/await handling and error feedback
+- Fixed single-day holiday storage issue - removed undefined endDate property (Firebase doesn't allow undefined values)
 - Added comprehensive logging for holiday operations to debug storage issues
 - Fixed `AnalisaKehadiran` typescript and logic errors
   - Fixed logic for "Tidak Absen" in monthly statistics by ignoring weekends properly instead of mathematical substraction (`calculateAbsentDays`).
