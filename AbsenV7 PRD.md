@@ -68,8 +68,9 @@ A strictly time-gated form for daily attendance logging. All fields are mandator
 **Time-Gated Logic & Database Submission (with Timestamp):**
 
 * **\< 05:00 AM:** Submission blocked. Shows popup: *"Belum waktunya absen 🤨, tunggu setelah jam 05:00 sampai 10:00"*. Data is NOT sent to the database.  
-* **05:00 AM – 10:00 AM:** Normal submission. Shows popup: *"Berhasil Absen. Jangan Lupa untuk Absen hari berikutnya ☺️"*. Data sent to database.  
-* **\> 10:00 AM:** Late submission. Shows popup: *"Telat absen hari ini 🤨"*. Data is marked as "Telat" but is SUCCESSFULLY sent to the database.
+* **05:00 AM – 10:00 AM:** Normal submission (status: 'ontime'). Shows popup: *"Berhasil Absen. Jangan Lupa untuk Absen hari berikutnya ☺️"*. Data sent to database.  
+* **10:01 AM – 5:00 PM:** Late submission (status: 'late'). Shows popup: *"Telat absen hari ini 🤨"*. Data is marked as "Telat" and is SUCCESSFULLY sent to the database.  
+* **\> 5:00 PM:** Invalid submission (status: 'invalid'). Attendance record is rejected and NOT saved to database.
 
 ### **3.2. Notifikasi**
 
@@ -105,7 +106,7 @@ Database-synced employee registry with CRUD (Create, Read, Update, Delete) capab
 * hari", "Tidak Absen \=  
 * $$x$$  
 * hari". Clicking the card reveals specific dates missed or late.  
-* **Calendar API Integration:** Integrates with Google Calendar API to automatically exclude national holidays from the calculation. Users can also define Custom Holidays synced across all devices.
+* **Custom Holiday Management:** Users can define custom holidays (single-day or multi-day) synced across all devices via Firebase Realtime Database. Holidays are excluded from monthly attendance calculations.
 
 #### **3.3.3. Pergerakan**
 
@@ -179,7 +180,7 @@ Strict historical API MPMS calculation for Correction for Temperature (CTL) and 
 
 ### **3.5. Notepad**
 
-A general text editor stored locally on the device with a built-in function to export notes directly as a .txt file.
+A general text editor stored in Firebase Realtime Database with cross-device sync. Notes can be created, edited, and deleted. Export functionality exports notes as CSV files.
 
 ### **3.6. Tutup**
 

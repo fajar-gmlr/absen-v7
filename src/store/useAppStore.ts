@@ -4,7 +4,8 @@ import type {
   AttendanceRecord, 
   Notification, 
   Note, 
-  Holiday 
+  Holiday,
+  UserRole,
 } from '../types';
 import {
   syncEmployees,
@@ -34,6 +35,12 @@ interface AppState {
   // User state
   userName: string | null;
   setUserName: (name: string) => void;
+  
+  // Current user for RBAC
+  currentUserId: string | null;
+  currentUserRole: UserRole | null;
+  setCurrentUser: (employeeId: string, role: UserRole) => void;
+  clearCurrentUser: () => void;
   
   // Employees
   employees: Employee[];
@@ -76,6 +83,12 @@ export const useAppStore = create<AppState>()((set, get) => {
     // User state
     userName: null,
     setUserName: (name) => set({ userName: name }),
+    
+    // Current user for RBAC
+    currentUserId: null,
+    currentUserRole: null,
+    setCurrentUser: (employeeId, role) => set({ currentUserId: employeeId, currentUserRole: role }),
+    clearCurrentUser: () => set({ currentUserId: null, currentUserRole: null }),
     
     // Employees
     employees: [],

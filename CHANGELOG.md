@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Employee "Jabatan" (position/title) field in employee management
+  - Added optional `jabatan` field to Employee interface
+  - New input field in employee form to add/edit Jabatan
+  - Displays Jabatan in employee list card
+  - Supports editing existing employee Jabatan
+
+### Added
 - Full-screen notification modal on app startup for unacknowledged notifications
   - Shows ALL unacknowledged notifications in queue (one by one)
   - User must click "Saya Sudah Membaca" to acknowledge each notification

@@ -1,20 +1,24 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
+import { useAppStore } from '../store/useAppStore';
 
 interface LayoutProps {
   children: React.ReactNode;
   title: string;
 }
 
-const navItems = [
-  { path: '/absensi', label: 'Absensi' },
-  { path: '/notifikasi', label: 'Notifikasi' },
-  { path: '/managerial', label: 'Managerial' },
-  { path: '/toolbox', label: 'Toolbox' },
-  { path: '/notepad', label: 'Notepad' },
-];
-
 export function Layout({ children, title }: LayoutProps) {
+  const { currentUserRole } = useAppStore();
+  
+  // Build nav items based on user role
+  const navItems = [
+    { path: '/absensi', label: 'Absensi' },
+    { path: '/notifikasi', label: 'Notifikasi' },
+    ...(currentUserRole === 'manager' ? [{ path: '/managerial', label: 'Managerial' }] : []),
+    { path: '/toolbox', label: 'Toolbox' },
+    { path: '/notepad', label: 'Notepad' },
+  ];
+
   return (
     <div className="min-h-screen flex flex-col bg-transparent relative z-10">
       {/* Header - Glassmorphism effect */}

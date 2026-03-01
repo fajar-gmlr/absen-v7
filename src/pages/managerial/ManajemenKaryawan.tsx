@@ -12,6 +12,7 @@ export function ManajemenKaryawan() {
   // Form fields
   const [initial, setInitial] = useState('');
   const [fullName, setFullName] = useState('');
+  const [jabatan, setJabatan] = useState('');
   const [emergencyName, setEmergencyName] = useState('');
   const [emergencyRelation, setEmergencyRelation] = useState('');
   const [emergencyPhone, setEmergencyPhone] = useState('');
@@ -24,6 +25,7 @@ export function ManajemenKaryawan() {
   const resetForm = () => {
     setInitial('');
     setFullName('');
+    setJabatan('');
     setEmergencyName('');
     setEmergencyRelation('');
     setEmergencyPhone('');
@@ -37,6 +39,7 @@ export function ManajemenKaryawan() {
     setEditingId(employee.id);
     setInitial(employee.initial);
     setFullName(employee.fullName);
+    setJabatan(employee.jabatan || '');
     setEmergencyName(employee.emergencyContact?.name || '');
     setEmergencyRelation(employee.emergencyContact?.relationship || '');
     setEmergencyPhone(employee.emergencyContact?.phone || '');
@@ -74,6 +77,7 @@ export function ManajemenKaryawan() {
       id: editingId || crypto.randomUUID(),
       initial: initial.toUpperCase(),
       fullName,
+      role: 'employee',
       safetyCertificates: certificates,
     };
 
@@ -88,6 +92,10 @@ export function ManajemenKaryawan() {
     
     if (mcuDate) {
       employeeData.mcuDate = mcuDate;
+    }
+
+    if (jabatan) {
+      employeeData.jabatan = jabatan;
     }
 
     if (editingId) {
@@ -149,6 +157,17 @@ export function ManajemenKaryawan() {
               placeholder="Nama lengkap"
               className="w-full px-4 py-3 border border-gray-700 rounded-card focus:outline-none focus:ring-2 focus:ring-primary min-h-touch input-3d text-gray-100"
               required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Jabatan</label>
+            <input
+              type="text"
+              value={jabatan}
+              onChange={(e) => setJabatan(e.target.value)}
+              placeholder="Contoh: Supervisor, Operator, dll"
+              className="w-full px-4 py-3 border border-gray-700 rounded-card focus:outline-none focus:ring-2 focus:ring-primary min-h-touch input-3d text-gray-100"
             />
           </div>
 
@@ -261,6 +280,11 @@ export function ManajemenKaryawan() {
                   <h4 className="font-semibold text-gray-100">
                     {emp.initial} - {emp.fullName}
                   </h4>
+                  {emp.jabatan && (
+                    <p className="text-sm text-primary">
+                      Jabatan: {emp.jabatan}
+                    </p>
+                  )}
                   {emp.mcuDate && (
                     <p className={`text-sm ${checkMCUExpired(emp.mcuDate) ? 'text-danger' : 'text-gray-500'}`}>
                       MCU: {emp.mcuDate} {checkMCUExpired(emp.mcuDate) && '⚠️'}

@@ -1,8 +1,12 @@
 // Employee Types
+export type UserRole = 'manager' | 'employee';
+
 export interface Employee {
   id: string;
   initial: string;
   fullName: string;
+  role: UserRole;
+  jabatan?: string;
   emergencyContact?: EmergencyContact;
   mcuDate?: string;
   safetyCertificates: SafetyCertificate[];
