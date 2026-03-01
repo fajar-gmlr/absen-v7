@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useAppStore } from '../../store/useAppStore';
-import { calculateBusinessDays, calculateAbsentDays } from '../../utils/timeUtils';
+import { calculateBusinessDays, calculateAbsentDays, expandHolidaysToDates } from '../../utils/timeUtils';
 import type { HealthCondition, Holiday, Employee, AttendanceRecord } from '../../types';
 import { ConnectionStatusBar, useConnectionStatus } from './components/ConnectionStatusBar';
 import { DailyView } from './components/DailyView';
@@ -103,6 +103,10 @@ export function AnalisaKehadiran() {
         calcEndDate = new Date(currentYear, currentMonth, 0);
       }
 
+      // Expand holidays to individual dates for filtering
+      const expandedHolidayDates = expandHolidaysToDates(holidayDates);
+
+      // Get unique attendance dates
       const uniqueDates: Set<string> = new Set(
         empRecords.map((r: AttendanceRecord) => {
           const d = new Date(r.timestamp);
@@ -110,7 +114,15 @@ export function AnalisaKehadiran() {
         })
       );
 
-      const absenCount = uniqueDates.size;
+      // Filter out weekends and holidays from attendance count
+      const validWorkDates = Array.from(uniqueDates).filter((dateStr) => {
+        const date = new Date(dateStr);
+        const dayOfWeek = date.getDay();
+        // Skip weekends (0 = Sunday, 6 = Saturday) and holidays
+        return dayOfWeek !== 0 && dayOfWeek !== 6 && !expandedHolidayDates.includes(dateStr);
+      });
+
+      const absenCount = validWorkDates.length;
       const tidakAbsenCount = isFutureMonth ? 0 : calculateAbsentDays(startDate, calcEndDate, uniqueDates, holidayDates);
 
       return {

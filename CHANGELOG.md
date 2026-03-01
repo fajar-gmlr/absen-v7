@@ -21,6 +21,7 @@ All notable changes to this project will be documented in this file.
 - Added comprehensive logging for holiday operations to debug storage issues
 - Fixed `AnalisaKehadiran` typescript and logic errors
   - Fixed logic for "Tidak Absen" in monthly statistics by ignoring weekends properly instead of mathematical substraction (`calculateAbsentDays`).
+  - Fixed attendance count (Absen) to only count valid workdays - now excludes weekends and custom holidays from attendance count
   - Added strict TS typing for variables like `stat`, `row`, `h`, `r` in `exportToExcel`, `filter` arrays to avoid implicit any errors.
   - Formatted `ISOSting` conversion correctly depending on local timezone offset with local string.
 - Enhanced AnalisaKehadiran (Attendance Analysis) with improved logic:
