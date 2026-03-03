@@ -45,17 +45,19 @@ export function checkTimeGate(): TimeGateResult {
 }
 
 /**
- * Get current timestamp in ISO format with local timezone offset
+ * Get current timestamp in ISO format with correct local timezone offset
  * This ensures the timestamp matches the user's local date/time
+ * Format: 2024-01-15T08:30:00+07:00
  */
 export function getTimestamp(): string {
   const now = new Date();
-  // Get timezone offset in minutes (WIB is +420 minutes)
   const offset = now.getTimezoneOffset();
-  // Create a new date adjusted for local timezone
-  const localDate = new Date(now.getTime() - offset * 60 * 1000);
-  // Return ISO string without the 'Z' suffix to indicate local time
-  return localDate.toISOString().replace('Z', '');
+  const sign = offset > 0 ? '-' : '+';
+  const absOffset = Math.abs(offset);
+  const hours = String(Math.floor(absOffset / 60)).padStart(2, '0');
+  const minutes = String(absOffset % 60).padStart(2, '0');
+  const isoString = now.toISOString().replace('Z', `${sign}${hours}:${minutes}`);
+  return isoString;
 }
 
 /**
