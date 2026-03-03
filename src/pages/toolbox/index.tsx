@@ -56,7 +56,7 @@ export function Toolbox() {
         </div>
 
         {/* Tool Content */}
-        <div className="card-3d p-4">
+        <div className="holo-card p-4">
           {renderTool()}
         </div>
       </div>

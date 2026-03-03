@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useMemo, memo, useRef, useEffect } from 'react';
 import { Layout } from '../components/Layout';
 import { useEmployees, useAddAttendance, useHasSubmittedToday } from '../store/useAppStore';
@@ -84,21 +85,19 @@ function DebouncedTextarea({
     };
   }, []);
 
-  const inputClass = `w-full px-4 py-3 rounded-input input-3d text-gray-100 placeholder-gray-500 focus:outline-none min-h-touch ${
-    shakeFields.has(fieldName) ? 'border-danger shake' : ''
-  }`;
-
   return (
-    <div className="card-3d rounded-card p-4">
-      <label className="block text-sm font-medium text-gray-300 mb-2">
-        {label} <span className="text-danger">*</span>
+    <div className="bg-black/40 border border-white/5 p-5 rounded-2xl">
+      <label className="block text-base font-medium text-white/70 mb-3">
+        {label} <span className="text-red-400">*</span>
       </label>
       <textarea
         value={localValue}
         onChange={handleChange}
         rows={rows}
         placeholder={placeholder}
-        className={inputClass}
+        className={`w-full px-5 py-4 rounded-xl bg-black/50 border border-white/10 text-white placeholder-white/30 focus:border-cyan-500 outline-none text-base min-h-[100px] ${
+          shakeFields.has(fieldName) ? 'border-red-500 shake' : ''
+        }`}
       />
     </div>
   );
@@ -125,21 +124,19 @@ function TextInput({ value, onChange, placeholder, label, fieldName, shakeFields
     onChange(e.target.value);
   }, [onChange]);
 
-  const inputClass = `w-full px-4 py-3 rounded-input input-3d text-gray-100 placeholder-gray-500 focus:outline-none min-h-touch ${
-    shakeFields.has(fieldName) ? 'border-danger shake' : ''
-  }`;
-
   return (
-    <div className="card-3d rounded-card p-4">
-      <label className="block text-sm font-medium text-gray-300 mb-2">
-        {label} <span className="text-danger">*</span>
+    <div className="bg-black/40 border border-white/5 p-5 rounded-2xl">
+      <label className="block text-base font-medium text-white/70 mb-3">
+        {label} <span className="text-red-400">*</span>
       </label>
       <input
         type="text"
         value={value}
         onChange={handleChange}
         placeholder={placeholder}
-        className={inputClass}
+        className={`w-full px-5 py-4 rounded-xl bg-black/50 border border-white/10 text-white placeholder-white/30 focus:border-cyan-500 outline-none text-base ${
+          shakeFields.has(fieldName) ? 'border-red-500 shake' : ''
+        }`}
       />
     </div>
   );
@@ -163,19 +160,17 @@ function EmployeeSelect({ value, onChange, employees, shakeFields }: EmployeeSel
     onChange(e.target.value);
   }, [onChange]);
 
-  const inputClass = `w-full px-4 py-3 rounded-input input-3d text-gray-100 placeholder-gray-500 focus:outline-none min-h-touch ${
-    shakeFields.has('employee') ? 'border-danger shake' : ''
-  }`;
-
   return (
-    <div className="card-3d rounded-card p-4">
-      <label className="block text-sm font-medium text-gray-300 mb-2">
-        Inisial - Nama Lengkap <span className="text-danger">*</span>
+    <div className="bg-black/40 border border-white/5 p-5 rounded-2xl">
+      <label className="block text-base font-medium text-white/70 mb-3">
+        Inisial - Nama Lengkap <span className="text-red-400">*</span>
       </label>
       <select
         value={value}
         onChange={handleChange}
-        className={inputClass}
+        className={`w-full px-5 py-4 rounded-xl bg-black/50 border border-white/10 text-white focus:border-cyan-500 outline-none text-base ${
+          shakeFields.has('employee') ? 'border-red-500 shake' : ''
+        }`}
       >
         <option value="" className="text-gray-900">Pilih Karyawan</option>
         {employees.map((emp) => (
@@ -210,19 +205,17 @@ function WorkLocationSelect({ value, onChange, shakeFields }: WorkLocationSelect
     onChange(e.target.value);
   }, [onChange]);
 
-  const inputClass = `w-full px-4 py-3 rounded-input input-3d text-gray-100 placeholder-gray-500 focus:outline-none min-h-touch ${
-    shakeFields.has('workLocation') ? 'border-danger shake' : ''
-  }`;
-
   return (
-    <div className="card-3d rounded-card p-4">
-      <label className="block text-sm font-medium text-gray-300 mb-2">
-        Lokasi Kerja <span className="text-danger">*</span>
+    <div className="bg-black/40 border border-white/5 p-5 rounded-2xl">
+      <label className="block text-base font-medium text-white/70 mb-3">
+        Lokasi Kerja <span className="text-red-400">*</span>
       </label>
       <select
         value={value}
         onChange={handleChange}
-        className={inputClass}
+        className={`w-full px-5 py-4 rounded-xl bg-black/50 border border-white/10 text-white focus:border-cyan-500 outline-none text-base ${
+          shakeFields.has('workLocation') ? 'border-red-500 shake' : ''
+        }`}
       >
         <option value="" className="text-gray-900">Pilih Lokasi</option>
         {WORK_LOCATIONS.map((loc) => (
@@ -253,20 +246,20 @@ function HealthConditionRadio({ value, onChange, shakeFields }: HealthConditionR
   }, [onChange]);
 
   return (
-    <div className="card-3d rounded-card p-4">
-      <label className="block text-sm font-medium text-gray-300 mb-3">
-        Kondisi Kesehatan <span className="text-danger">*</span>
+    <div className="bg-black/40 border border-white/5 p-5 rounded-2xl">
+      <label className="block text-base font-medium text-white/70 mb-4">
+        Kondisi Kesehatan <span className="text-red-400">*</span>
       </label>
       <div className="space-y-3">
         {HEALTH_CONDITIONS.map((condition) => (
           <label
             key={condition.value}
-            className={`flex items-center p-3 rounded-button cursor-pointer transition-3d ${
+            className={`flex items-center p-4 rounded-xl cursor-pointer transition-all ${
               shakeFields.has('healthCondition')
-                ? 'border border-danger bg-red-500/10 shake'
+                ? 'border border-red-500 bg-red-500/10 shake'
                 : value === condition.value
-                ? 'btn-3d text-primary'
-                : 'input-3d text-gray-300 hover:bg-white/5'
+                ? 'border border-cyan-500/50 bg-cyan-500/10'
+                : 'border border-white/10 bg-white/5 hover:bg-white/10'
             }`}
           >
             <input
@@ -275,9 +268,9 @@ function HealthConditionRadio({ value, onChange, shakeFields }: HealthConditionR
               value={condition.value}
               checked={value === condition.value}
               onChange={handleChange}
-              className="w-4 h-4 text-primary accent-primary"
+              className="w-5 h-5 text-cyan-500 bg-black border-white/20 focus:ring-cyan-500"
             />
-            <span className="ml-3 text-sm">{condition.label}</span>
+            <span className="ml-4 text-base text-white">{condition.label}</span>
           </label>
         ))}
       </div>
@@ -302,27 +295,27 @@ function PopupModal({ show, message, status, onClose }: PopupModalProps) {
   if (!show) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="glass-panel rounded-card p-6 max-w-sm w-full animate-pulse-slow">
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+      <div className="bg-black/90 border border-white/10 p-8 rounded-2xl max-w-md w-full">
         <div className="text-center">
           <div
-            className={`text-4xl mb-4 ${
+            className={`text-5xl mb-5 ${
               status === 'success'
-                ? 'text-success neon-glow'
+                ? 'text-green-400'
                 : status === 'warning'
-                ? 'text-warning'
-                : 'text-danger'
+                ? 'text-yellow-400'
+                : 'text-red-400'
             }`}
           >
             {status === 'success' ? '✅' : status === 'warning' ? '⚠️' : '❌'}
           </div>
-          <p className="text-gray-200 text-lg">{message}</p>
-          <div className="btn-wrapper w-full mt-6">
-            <button onClick={onClose} className="btn w-full py-3">
-              <span className="btn-letter">O</span>
-              <span className="btn-letter">K</span>
-            </button>
-          </div>
+          <p className="text-white text-lg mb-6">{message}</p>
+          <button 
+            onClick={onClose} 
+            className="w-full py-4 bg-cyan-500/20 border border-cyan-500/50 rounded-xl text-cyan-400 text-base font-bold hover:bg-cyan-500/30 transition-all"
+          >
+            OK
+          </button>
         </div>
       </div>
     </div>
@@ -469,7 +462,7 @@ export function Absensi() {
   return (
     <Layout title="Absensi Harian">
       <div className="p-4">
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           {/* Employee Selection */}
           <MemoizedEmployeeSelect
             value={selectedEmployee}
@@ -547,23 +540,12 @@ export function Absensi() {
           />
 
           {/* Submit Button */}
-          <div className="btn-wrapper w-full mt-6">
-            <button type="submit" className="btn w-full py-4 text-lg font-semibold">
-              <span className="btn-letter">A</span>
-              <span className="btn-letter">b</span>
-              <span className="btn-letter">s</span>
-              <span className="btn-letter">e</span>
-              <span className="btn-letter">n</span>
-              <span className="btn-letter ml-1">S</span>
-              <span className="btn-letter">e</span>
-              <span className="btn-letter">k</span>
-              <span className="btn-letter">a</span>
-              <span className="btn-letter">r</span>
-              <span className="btn-letter">a</span>
-              <span className="btn-letter">n</span>
-              <span className="btn-letter">g</span>
-            </button>
-          </div>
+          <button 
+            type="submit" 
+            className="w-full py-5 bg-cyan-500/20 border border-cyan-500/50 rounded-xl text-cyan-400 text-lg font-bold hover:bg-cyan-500/30 transition-all shadow-lg"
+          >
+            Absen Sekarang
+          </button>
         </form>
 
         {/* Popup Modal */}

@@ -1,269 +1,319 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useTransition, useCallback } from 'react';
 import { useAppStore } from '../../store/useAppStore';
-import { calculateBusinessDays, calculateAbsentDays, expandHolidaysToDates } from '../../utils/timeUtils';
-import type { HealthCondition, Holiday, Employee, AttendanceRecord } from '../../types';
+import type { Holiday, Employee, AttendanceRecord, HealthCondition } from '../../types';
 import { ConnectionStatusBar, useConnectionStatus } from './components/ConnectionStatusBar';
 import { DailyView } from './components/DailyView';
 import { MonthlyView } from './components/MonthlyView';
 
+// ============================================
+// TYPES & UTILS
+// ============================================
 type TabType = 'harian' | 'bulanan';
 
+interface DailyStats {
+  date: string;
+  status: 'ontime' | 'late' | 'absent' | 'weekend' | 'holiday' | 'working';
+}
+
+interface MonthlyStats {
+  employee: Employee;
+  ontimeCount: number;
+  lateCount: number;
+  absentCount: number;
+  totalBusinessDays: number;
+  attendanceRate: number;
+  dailyStats: DailyStats[];
+}
+
+const getAttendanceStatus = (timestamp: string): 'ontime' | 'late' | 'invalid' => {
+  // Parse the timestamp and convert to WIB (UTC+7)
+  const date = new Date(timestamp);
+  // Get hours in local time, then adjust for timezone offset to get WIB
+  // Since getTimestamp() stores in UTC+7 format, we need to parse it correctly
+  const wibTime = date.getHours() + (date.getTimezoneOffset() <= -420 ? 0 : 7); // Simplified for UTC+7
+  const time = wibTime + date.getMinutes() / 60;
+  if (time >= 5 && time <= 10) return 'ontime';
+  if (time > 10 && time <= 17) return 'late';
+  return 'invalid';
+};
+
+// Helper to get current time in WIB (UTC+7)
+const getCurrentTimeWIB = (): number => {
+  const now = new Date();
+  // Get current hour in local time, then add 7 to get WIB
+  // For Indonesia (UTC+7), we adjust accordingly
+  let wibHour = now.getHours() + 7;
+  if (wibHour >= 24) wibHour -= 24;
+  return wibHour + now.getMinutes() / 60;
+};
+
+// Check if current time is past 17:00 WIB
+const isPast17WIB = (): boolean => {
+  const currentTimeWIB = getCurrentTimeWIB();
+  return currentTimeWIB >= 17;
+};
+
+const formatDateKey = (date: Date): string => {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+};
+
+const isWeekend = (date: Date): boolean => {
+  const day = date.getDay();
+  return day === 0 || day === 6;
+};
+
+// ============================================
+// MAIN COMPONENT: AnalisaKehadiran
+// ============================================
 export function AnalisaKehadiran() {
   const { attendanceRecords, employees, holidays, addHoliday, deleteHoliday } = useAppStore();
+  
+  // Transitions & Tabs
+  const [isPending, startTransition] = useTransition();
   const [activeTab, setActiveTab] = useState<TabType>('harian');
+  
+  // Filter States
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [dailyDate, setDailyDate] = useState<string>(formatDateKey(new Date()));
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
 
-  // Connection status hook
-  const { isConnected, lastSyncTime, isRefreshing, handleRefresh } = useConnectionStatus();
-
-  // Holiday CRUD states
+  // Holiday Manager States (Koneksi ke MonthlyView)
   const [showHolidayForm, setShowHolidayForm] = useState(false);
   const [holidayDate, setHolidayDate] = useState('');
   const [holidayEndDate, setHolidayEndDate] = useState('');
   const [isMultiDay, setIsMultiDay] = useState(false);
   const [holidayName, setHolidayName] = useState('');
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
-  // Helper function: Tentukan status absen berdasarkan jam
-  const getAttendanceStatus = (timestamp: string): 'ontime' | 'late' | 'invalid' => {
-    const date = new Date(timestamp);
-    const time = date.getHours() + date.getMinutes() / 60;
+  // Status Koneksi
+  const { isConnected, lastSyncTime, isRefreshing, handleRefresh } = useConnectionStatus();
 
-    if (time >= 5 && time <= 10) return 'ontime';
-    if (time > 10 && time <= 17) return 'late';
-    return 'invalid';
-  };
+  // ============================================
+  // ANALYTICS ENGINE (useMemo Optimized)
+  // ============================================
 
-  // Get local today string
-  const getLocalToday = () => {
-    const now = new Date();
-    return now.getFullYear() + '-' +
-      String(now.getMonth() + 1).padStart(2, '0') + '-' +
-      String(now.getDate()).padStart(2, '0');
-  };
-
-  const [dailyDate, setDailyDate] = useState<string>(getLocalToday());
-
-  // Filter valid records for selected date
-  const todayRecords = useMemo(() =>
-    attendanceRecords.filter((r: AttendanceRecord) => {
-      const recordDate = r.timestamp.split('T')[0];
-      const status = getAttendanceStatus(r.timestamp);
-      return recordDate === dailyDate && status !== 'invalid';
-    }), [attendanceRecords, dailyDate]);
-
-  // Employees who did not submit
-  const employeesWhoDidNotSubmit = useMemo(() =>
-    employees.filter((emp: Employee) => !todayRecords.some((r: AttendanceRecord) => r.employeeId === emp.id)),
-    [employees, todayRecords]);
-
-  // Get health condition color
-  const getHealthColor = (condition: HealthCondition): string => {
-    switch (condition) {
-      case 'healthy-no-symptoms': return 'bg-green-500';
-      case 'has-symptoms-not-checked': return 'bg-orange-500';
-      case 'sick-checked-medical': return 'bg-red-500';
-      default: return 'bg-gray-500';
-    }
-  };
-
-  // Calculate monthly statistics
-  const monthlyStats = useMemo(() => {
-    const currentMonth = selectedMonth;
-    const currentYear = selectedYear;
-    const todayObj = new Date();
-
-    return employees.map((emp: Employee) => {
-      const empRecords = attendanceRecords.filter((r: AttendanceRecord) => {
-        const recordDate = new Date(r.timestamp);
-        const isMatchMonth = recordDate.getMonth() === currentMonth && recordDate.getFullYear() === currentYear;
-        const status = getAttendanceStatus(r.timestamp);
-        return r.employeeId === emp.id && isMatchMonth && status !== 'invalid';
-      });
-
-      const lateCount = empRecords.filter((r: AttendanceRecord) => getAttendanceStatus(r.timestamp) === 'late').length;
-
-      const holidayDates = holidays.map((h: Holiday) => ({
-        date: h.date,
-        endDate: h.endDate || undefined
-      }));
-
-      const startDate = new Date(currentYear, currentMonth, 1);
-      const endOfMonth = new Date(currentYear, currentMonth + 1, 0);
-      const totalBusinessDays = calculateBusinessDays(startDate, endOfMonth, holidayDates);
-
-      let calcEndDate = endOfMonth;
-      const isCurrentMonth = currentYear === todayObj.getFullYear() && currentMonth === todayObj.getMonth();
-      const isFutureMonth = new Date(currentYear, currentMonth, 1) > todayObj;
-
-      if (isCurrentMonth) {
-        calcEndDate = todayObj;
-      } else if (isFutureMonth) {
-        calcEndDate = new Date(currentYear, currentMonth, 0);
+  // 1. Expand Holiday Dates (O(1) Lookup)
+  const expandedHolidayDates = useMemo(() => {
+    const dates = new Set<string>();
+    holidays.forEach(h => {
+      const start = new Date(h.date);
+      const end = h.endDate ? new Date(h.endDate) : start;
+      const curr = new Date(start);
+      while (curr <= end) {
+        dates.add(formatDateKey(curr));
+        curr.setDate(curr.getDate() + 1);
       }
+    });
+    return dates;
+  }, [holidays]);
 
-      // Expand holidays to individual dates for filtering
-      const expandedHolidayDates = expandHolidaysToDates(holidayDates);
+  // 2. Map Records by Employee (O(n))
+  const monthlyRecordsMap = useMemo(() => {
+    const map = new Map<string, AttendanceRecord[]>();
+    attendanceRecords.forEach(r => {
+      const d = new Date(r.timestamp);
+      if (d.getMonth() === selectedMonth && d.getFullYear() === selectedYear) {
+        const existing = map.get(r.employeeId) || [];
+        existing.push(r);
+        map.set(r.employeeId, existing);
+      }
+    });
+    return map;
+  }, [attendanceRecords, selectedMonth, selectedYear]);
 
-      // Get unique attendance dates
-      const uniqueDates: Set<string> = new Set(
-        empRecords.map((r: AttendanceRecord) => {
-          const d = new Date(r.timestamp);
-          return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-        })
-      );
+  // 3. Core Matrix Calculation
+  const monthlyStats = useMemo((): MonthlyStats[] => {
+    const lastDayOfMonth = new Date(selectedYear, selectedMonth + 1, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Get today's date key for comparison
+    const todayKey = formatDateKey(today);
+    // Check if it's past 17:00 WIB today
+    const past17WIBToday = isPast17WIB();
 
-      // Filter out weekends and holidays from attendance count
-      const validWorkDates = Array.from(uniqueDates).filter((dateStr) => {
-        const date = new Date(dateStr);
-        const dayOfWeek = date.getDay();
-        // Skip weekends (0 = Sunday, 6 = Saturday) and holidays
-        return dayOfWeek !== 0 && dayOfWeek !== 6 && !expandedHolidayDates.includes(dateStr);
-      });
+    return employees.map(emp => {
+      const empRecords = monthlyRecordsMap.get(emp.id) || [];
+      const recordDates = new Map(empRecords.map(r => [r.timestamp.split('T')[0], r]));
+      
+      const dailyStats: DailyStats[] = [];
+      let ontime = 0, late = 0, absent = 0, bizDays = 0;
 
-      const absenCount = validWorkDates.length;
-      const tidakAbsenCount = isFutureMonth ? 0 : calculateAbsentDays(startDate, calcEndDate, uniqueDates, holidayDates);
+      for (let i = 1; i <= lastDayOfMonth.getDate(); i++) {
+        const d = new Date(selectedYear, selectedMonth, i);
+        const dKey = formatDateKey(d);
+        const isPast = d < today;
+        const isToday = dKey === todayKey;
+
+        let status: DailyStats['status'] = 'working';
+        
+        if (isWeekend(d)) {
+          status = 'weekend';
+        } else if (expandedHolidayDates.has(dKey)) {
+          status = 'holiday';
+        } else {
+          bizDays++;
+          const record = recordDates.get(dKey);
+          if (record) {
+            // Parse timestamp and get hour in local time (which should be UTC+7)
+            const recordTime = new Date(record.timestamp);
+            // Get hours in local time (assuming stored as UTC+7)
+            const recordHour = recordTime.getHours();
+            if (recordHour >= 17) {
+              // Submitted after 5 PM - mark as absent
+              status = 'absent';
+              absent++;
+            } else {
+              // Submitted before 5 PM - check if ontime or late
+              status = getAttendanceStatus(record.timestamp) === 'late' ? 'late' : 'ontime';
+              if (status === 'late') late++; else ontime++;
+            }
+          } else if (isPast) {
+            // Past days without submission = absent
+            status = 'absent';
+            absent++;
+          } else if (isToday && past17WIBToday) {
+            // Today is past 17:00 WIB and no submission = absent
+            status = 'absent';
+            absent++;
+          }
+          // Future days or today (before 17:00) without submission will show as 'working' (blue/idle)
+        }
+        dailyStats.push({ date: dKey, status });
+      }
 
       return {
         employee: emp,
-        lateCount,
-        absenCount,
-        tidakAbsenCount,
-        totalBusinessDays,
+        ontimeCount: ontime,
+        lateCount: late,
+        absentCount: absent,
+        totalBusinessDays: bizDays,
+        attendanceRate: bizDays > 0 ? Math.round(((ontime + late) / bizDays) * 100) : 0,
+        dailyStats
       };
     });
-  }, [employees, attendanceRecords, holidays, selectedMonth, selectedYear]);
+  }, [employees, monthlyRecordsMap, expandedHolidayDates, selectedMonth, selectedYear]);
 
-  // Handle add holiday
+  // ============================================
+  // HANDLERS
+  // ============================================
+  const handleTabChange = useCallback((tab: TabType) => {
+    startTransition(() => setActiveTab(tab));
+  }, []);
+
   const handleAddHoliday = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!holidayDate || !holidayName) {
-      alert('Silakan isi nama hari libur dan tanggal');
-      return;
-    }
+    if (!holidayDate || !holidayName) return;
 
-    if (isMultiDay && !holidayEndDate) {
-      alert('Silakan pilih tanggal akhir untuk libur beberapa hari');
-      return;
-    }
-
-    // Build holiday object - only include endDate for multi-day holidays
-    // Firebase doesn't allow undefined values
     const newHoliday: Holiday = {
       id: Date.now().toString(),
       date: holidayDate,
       name: holidayName,
       isCustom: true,
-      isMultiDay: isMultiDay || false,
+      isMultiDay,
+      ...(isMultiDay && { endDate: holidayEndDate })
     };
-
-    // Only add endDate for multi-day holidays
-    if (isMultiDay && holidayEndDate) {
-      newHoliday.endDate = holidayEndDate;
-    }
-
-    console.log('[AnalisaKehadiran] Adding holiday:', JSON.stringify(newHoliday));
 
     try {
       await addHoliday(newHoliday);
-      console.log('[AnalisaKehadiran] Holiday added successfully');
-      alert(`Hari libur "${holidayName}" berhasil ditambahkan!`);
-      setHolidayDate('');
-      setHolidayEndDate('');
-      setHolidayName('');
-      setIsMultiDay(false);
-      // Keep form open for adding multiple holidays
-    } catch (error) {
-      console.error('[AnalisaKehadiran] Error adding holiday:', error);
-      alert('Gagal menambahkan hari libur. Silakan coba lagi.');
+      setHolidayName(''); setHolidayDate(''); setHolidayEndDate('');
+      setShowHolidayForm(false);
+    } catch (err) {
+      console.error("Gagal tambah libur:", err);
     }
   };
 
-  // Export to Excel
-  const exportToExcel = () => {
-    const headers = ['Inisial', 'Nama Lengkap', 'Absen (hari)', 'Tidak Absen (hari)', 'Telat (hari)', 'Total Hari Kerja'];
-    const rows = monthlyStats.map((stat: any) => [
-      stat.employee.initial,
-      stat.employee.fullName,
-      stat.absenCount,
-      stat.tidakAbsenCount,
-      stat.lateCount,
-      stat.totalBusinessDays
-    ]);
+  // Excel Export with proper formatting
+  const handleExportExcel = useCallback(() => {
+    const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    const currentMonth = monthNames[selectedMonth];
+    let tableRows = '';
+    monthlyStats.forEach((stat, index) => {
+      const colorClass = stat.attendanceRate >= 80 ? 'green' : stat.attendanceRate >= 50 ? 'yellow' : 'red';
+      tableRows += '<tr><td>' + (index + 1) + '</td><td>' + stat.employee.fullName + '</td><td class="' + colorClass + '">' + stat.attendanceRate + '%</td><td>' + stat.ontimeCount + '</td><td>' + stat.lateCount + '</td><td>' + stat.absentCount + '</td><td>' + stat.totalBusinessDays + '</td></tr>';
+    });
+    const totalOntime = monthlyStats.reduce((a, b) => a + b.ontimeCount, 0);
+    const totalLate = monthlyStats.reduce((a, b) => a + b.lateCount, 0);
+    const totalAbsent = monthlyStats.reduce((a, b) => a + b.absentCount, 0);
+    const totalDays = monthlyStats.reduce((a, b) => a + b.totalBusinessDays, 0);
+    const avgRate = monthlyStats.length > 0 ? Math.round(monthlyStats.reduce((a, b) => a + b.attendanceRate, 0) / monthlyStats.length) : 0;
+    tableRows += '<tr style="font-weight:bold;background:#e2e8f0"><td colspan="2">TOTAL</td><td>' + avgRate + '%</td><td>' + totalOntime + '</td><td>' + totalLate + '</td><td>' + totalAbsent + '</td><td>' + totalDays + '</td></tr>';
+    const htmlContent = '<html><head><meta charset="utf-8"><style>table{border-collapse:collapse;width:100%}th,td{border:1px solid #333;padding:8px;text-align:center}th{background:#1e3a5f;color:#fff}.green{background:#86efac}.yellow{background:#fde047}.red{background:#fca5a5}</style></head><body><h2 style="text-align:center">LAPORAN KEHADIRAN KARYAWAN</h2><p style="text-align:center">Bulan: ' + currentMonth + ' ' + selectedYear + '</p><table><tr><th>No</th><th>Nama Karyawan</th><th>Kehadiran %</th><th>On Time</th><th>Telat</th><th>Absen</th><th>Hari Kerja</th></tr>' + tableRows + '</table></body></html>';
+    const blob = new Blob([htmlContent], { type: 'application/vnd.ms-excel' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Laporan-Kehadiran-' + currentMonth + '-' + selectedYear + '.xls';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  }, [monthlyStats, selectedMonth, selectedYear]);
 
-    const csvContent = [headers.join(','), ...rows.map((row: any[]) => row.join(','))].join('\n');
-    const BOM = '\uFEFF';
-    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `kehadiran-${selectedMonth + 1}-${selectedYear}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
+  // ============================================
+  // RENDER
+  // ============================================
   return (
-    <div>
-      <ConnectionStatusBar
-        isConnected={isConnected}
-        lastSyncTime={lastSyncTime}
-        isRefreshing={isRefreshing}
-        onRefresh={handleRefresh}
+    <div className="min-h-screen bg-black text-white p-4 space-y-6">
+      
+      {/* Header Section */}
+      <div className="flex justify-between items-end border-b border-white/5 pb-6">
+        <div>
+          <h1 className="text-5xl font-black tracking-tighter italic uppercase text-white">
+            Analisa Kehadiran
+          </h1>
+          <p className="text-sm font-bold tracking-[0.4em] text-cyan-500 uppercase mt-2">
+            Data Matrix v2.0
+          </p>
+        </div>
+        <div className="bg-white/5 p-5 rounded-2xl border border-white/10 text-right">
+          <p className="text-xs text-white/40 uppercase font-bold tracking-widest">Avg. Attendance</p>
+          <p className="text-3xl font-black text-white mt-1">
+            {monthlyStats.length > 0 
+              ? Math.round(monthlyStats.reduce((a, b) => a + b.attendanceRate, 0) / monthlyStats.length) 
+              : 0}%
+          </p>
+        </div>
+      </div>
+
+      {/* Tab Switcher */}
+      <div className="flex bg-white/5 p-2 rounded-2xl border border-white/5">
+        {(['harian', 'bulanan'] as TabType[]).map(tab => (
+          <button
+            key={tab}
+            onClick={() => handleTabChange(tab)}
+            className={`flex-1 py-4 text-sm font-black tracking-widest rounded-xl transition-all ${
+              activeTab === tab ? 'bg-white text-black' : 'text-white/40 hover:text-white'
+            }`}
+          >
+            {tab.toUpperCase()}
+          </button>
+        ))}
+      </div>
+
+      <ConnectionStatusBar 
+        isConnected={isConnected} 
+        lastSyncTime={lastSyncTime} 
+        isRefreshing={isRefreshing} 
+        onRefresh={handleRefresh} 
       />
 
-      {/* Data Summary */}
-      <div className="mb-4 grid grid-cols-3 gap-2">
-        <div className="bg-gray-800 p-2 rounded text-center">
-          <p className="text-xs text-gray-500">Karyawan</p>
-          <p className="text-lg font-bold text-primary">{employees.length}</p>
+      {/* Content Rendering */}
+      {isPending ? (
+        <div className="py-20 text-center animate-pulse">
+          <span className="text-xs font-bold tracking-[0.5em] text-cyan-500">PROCESSING DATA...</span>
         </div>
-        <div className="bg-gray-800 p-2 rounded text-center">
-          <p className="text-xs text-gray-500">Absen Hari Ini</p>
-          <p className="text-lg font-bold text-green-400">{todayRecords.length}</p>
-        </div>
-        <div className="bg-gray-800 p-2 rounded text-center">
-          <p className="text-xs text-gray-500">Total Records</p>
-          <p className="text-lg font-bold text-blue-400">{attendanceRecords.length}</p>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-2 mb-4">
-        <div className="btn-wrapper flex-1">
-          <button
-            onClick={() => setActiveTab('harian')}
-            className={`btn w-full py-2 ${activeTab === 'harian' ? 'border-primary' : ''}`}
-          >
-            <span className="btn-letter">H</span><span className="btn-letter">a</span>
-            <span className="btn-letter">r</span><span className="btn-letter">i</span>
-            <span className="btn-letter">a</span><span className="btn-letter">n</span>
-          </button>
-        </div>
-        <div className="btn-wrapper flex-1">
-          <button
-            onClick={() => setActiveTab('bulanan')}
-            className={`btn w-full py-2 ${activeTab === 'bulanan' ? 'border-primary' : ''}`}
-          >
-            <span className="btn-letter">B</span><span className="btn-letter">u</span>
-            <span className="btn-letter">l</span><span className="btn-letter">a</span>
-            <span className="btn-letter">n</span><span className="btn-letter">a</span>
-            <span className="btn-letter">n</span>
-          </button>
-        </div>
-      </div>
-
-      {activeTab === 'harian' ? (
+      ) : activeTab === 'harian' ? (
         <DailyView
           dailyDate={dailyDate}
           onDailyDateChange={setDailyDate}
-          todayRecords={todayRecords}
-          employeesWhoDidNotSubmit={employeesWhoDidNotSubmit}
+          todayRecords={attendanceRecords.filter(r => r.timestamp.startsWith(dailyDate))}
+          employeesWhoDidNotSubmit={employees.filter(e => !attendanceRecords.some(r => r.employeeId === e.id && r.timestamp.startsWith(dailyDate)))}
           employees={employees}
           expandedCard={expandedCard}
           onToggleCard={setExpandedCard}
           getAttendanceStatus={getAttendanceStatus}
-          getHealthColor={getHealthColor}
+          getHealthColor={(c: HealthCondition) => c === 'healthy-no-symptoms' ? '#4ade80' : '#facc15'}
         />
       ) : (
         <MonthlyView
@@ -274,6 +324,7 @@ export function AnalisaKehadiran() {
           monthlyStats={monthlyStats}
           employees={employees}
           holidays={holidays}
+          // Passing Holiday States
           showHolidayForm={showHolidayForm}
           isMultiDay={isMultiDay}
           holidayDate={holidayDate}
@@ -286,9 +337,12 @@ export function AnalisaKehadiran() {
           onHolidayNameChange={setHolidayName}
           onAddHoliday={handleAddHoliday}
           onDeleteHoliday={deleteHoliday}
-          onExportExcel={exportToExcel}
+          onExportExcel={handleExportExcel}
         />
       )}
     </div>
   );
 }
+
+export default AnalisaKehadiran;
+

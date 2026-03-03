@@ -39,13 +39,13 @@ export function Pergerakan() {
 
   return (
     <div>
-      {/* Tabs */}
+      {/* Tabs - Holographic Style */}
       <div className="flex gap-2 mb-4">
         <div className="btn-wrapper flex-1">
           <button
             onClick={() => setActiveTab('pengumuman')}
             className={`btn w-full py-2 ${
-              activeTab === 'pengumuman' ? 'border-primary' : ''
+              activeTab === 'pengumuman' ? 'holo-active' : ''
             }`}
           >
             <span className="btn-letter">P</span>
@@ -64,7 +64,7 @@ export function Pergerakan() {
           <button
             onClick={() => setActiveTab('tersampaikan')}
             className={`btn w-full py-2 ${
-              activeTab === 'tersampaikan' ? 'border-primary' : ''
+              activeTab === 'tersampaikan' ? 'holo-active' : ''
             }`}
           >
             <span className="btn-letter">T</span>
@@ -99,29 +99,29 @@ export function Pergerakan() {
 
           {/* Create Form */}
           {showForm && (
-            <form onSubmit={handleSubmit} className="card-3d p-4 mb-4 space-y-4">
-              <h3 className="font-semibold text-gray-100">Pengumuman Baru</h3>
+            <form onSubmit={handleSubmit} className="holo-card p-4 mb-4 space-y-4">
+              <h3 className="font-light text-white">Pengumuman Baru</h3>
               
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Judul</label>
+                <label className="block text-sm font-light text-gray-300 mb-1">Judul</label>
                 <input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Judul pengumuman"
-                  className="w-full px-4 py-3 border border-gray-700 rounded-card focus:outline-none focus:ring-2 focus:ring-primary min-h-touch input-3d text-gray-100"
+                  className="w-full px-4 py-3 border border-neon-teal/30 rounded-card focus:outline-none focus:ring-2 min-h-touch holo-input text-white"
                   required
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Pesan</label>
+                <label className="block text-sm font-light text-gray-300 mb-1">Pesan</label>
                 <textarea
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   rows={4}
                   placeholder="Isi pengumuman..."
-                  className="w-full px-4 py-3 border border-gray-700 rounded-card focus:outline-none focus:ring-2 focus:ring-primary min-h-touch input-3d text-gray-100"
+                  className="w-full px-4 py-3 border border-neon-teal/30 rounded-card focus:outline-none focus:ring-2 min-h-touch holo-input text-white"
                   required
                 />
               </div>
@@ -155,18 +155,18 @@ export function Pergerakan() {
           {/* Announcement List */}
           <div className="space-y-3">
             {sortedNotifications.length === 0 ? (
-              <p className="text-center text-gray-500 py-8">Belum ada pengumuman</p>
+              <p className="text-center holo-text-dim py-8">Belum ada pengumuman</p>
             ) : (
               sortedNotifications.map((notif) => (
-                <div key={notif.id} className="card-3d p-4">
+                <div key={notif.id} className="holo-card p-4">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
-                      <h4 className="font-semibold text-gray-100">{notif.title}</h4>
+                      <h4 className="font-light text-white">{notif.title}</h4>
                       <p className="text-gray-300 mt-1">{notif.message}</p>
-                      <p className="text-xs text-gray-500 mt-2">
+                      <p className="text-xs holo-text-dim mt-2">
                         {formatDate(notif.createdAt)} • {formatTime(notif.createdAt)}
                       </p>
-                      <p className="text-xs text-primary mt-1">
+                      <p className="text-xs neon-text mt-1">
                         Dibaca oleh {notif.acknowledgedBy?.length || 0} orang
                       </p>
                     </div>
@@ -176,7 +176,7 @@ export function Pergerakan() {
                           await deleteNotification(notif.id);
                         }
                       }}
-                      className="text-danger hover:text-red-400 ml-2"
+                      className="text-red-400 hover:text-red-300 ml-2"
                       title="Hapus pengumuman"
                     >
                       🗑️
@@ -191,17 +191,17 @@ export function Pergerakan() {
         /* Tersampaikan - Read Receipts */
         <div className="space-y-3">
           {sortedNotifications.length === 0 ? (
-            <p className="text-center text-gray-500 py-8">Belum ada pengumuman</p>
+            <p className="text-center holo-text-dim py-8">Belum ada pengumuman</p>
           ) : (
             sortedNotifications.map((notif) => (
-              <div key={notif.id} className="card-3d p-4">
-                <h4 className="font-semibold text-gray-100">{notif.title}</h4>
-                <p className="text-sm text-gray-400 mt-1">
+              <div key={notif.id} className="holo-card p-4">
+                <h4 className="font-light text-white">{notif.title}</h4>
+                <p className="text-sm holo-text-dim mt-1">
                   {formatDate(notif.createdAt)}
                 </p>
                 
                 <div className="mt-3">
-                  <p className="text-sm font-medium text-gray-300">
+                  <p className="text-sm font-light text-gray-300">
                     Sudah Dibaca ({notif.acknowledgedBy?.length || 0}):
                   </p>
                   <div className="flex flex-wrap gap-2 mt-2">
@@ -210,19 +210,19 @@ export function Pergerakan() {
                       notif.acknowledgedBy.map((name, idx) => (
                         <span
                           key={idx}
-                          className="text-xs bg-green-900/30 text-green-400 px-2 py-1 rounded-full border border-green-500/30"
+                          className="text-xs holo-status-success px-2 py-1 rounded-full"
                         >
                           ✓ {name}
                         </span>
                       ))
                     ) : (
-                      <p className="text-sm text-gray-400">Belum ada yang membaca</p>
+                      <p className="text-sm holo-text-dim">Belum ada yang membaca</p>
                     )}
                   </div>
                 </div>
 
                 <div className="mt-3">
-                  <p className="text-sm font-medium text-gray-300">
+                  <p className="text-sm font-light text-gray-300">
                     Belum Dibaca ({employees.length - (notif.acknowledgedBy?.length || 0)}):
                   </p>
 
@@ -233,13 +233,13 @@ export function Pergerakan() {
 
                         <span
                           key={emp.id}
-                          className="text-xs bg-gray-800 text-gray-300 px-2 py-1 rounded-full border border-gray-600/30"
+                          className="text-xs holo-card text-gray-300 px-2 py-1 rounded-full"
                         >
                           {emp.fullName}
                         </span>
                       ))}
                     {employees.length === 0 && (
-                      <p className="text-sm text-gray-400">Belum ada karyawan</p>
+                      <p className="text-sm holo-text-dim">Belum ada karyawan</p>
                     )}
                   </div>
                 </div>

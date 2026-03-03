@@ -1,3 +1,4 @@
+
 import { useState, useCallback, memo } from 'react';
 import { Layout } from '../components/Layout';
 import { useAppStore, useEmployees } from '../store/useAppStore';
@@ -29,20 +30,20 @@ const NotificationItem = memo(function NotificationItem({
 
   return (
     <div
-      className={`card-3d rounded-card p-4 transition-3d ${
-        !isAcknowledged ? 'border-l-4 border-primary' : ''
+      className={`bg-black/40 border border-white/5 p-5 rounded-2xl backdrop-blur-sm transition-all ${
+        !isAcknowledged ? 'border-l-4 border-l-green-500' : ''
       }`}
     >
       <div className="flex justify-between items-start">
         <div className="flex-1">
-          <h3 className="font-semibold text-gray-100">{notification.title}</h3>
-          <p className="text-gray-300 mt-1">{notification.message}</p>
-          <p className="text-xs text-gray-500 mt-2">
+          <h3 className="text-lg font-bold text-white">{notification.title}</h3>
+          <p className="text-base text-white/60 mt-2">{notification.message}</p>
+          <p className="text-sm text-white/40 mt-3">
             {formatDate(notification.createdAt)} • {formatTime(notification.createdAt)}
           </p>
         </div>
         {!isAcknowledged && (
-          <span className="bg-primary/20 text-primary text-xs px-2 py-1 rounded-full border border-primary/30">
+          <span className="px-4 py-2 text-sm font-bold bg-green-500/20 text-green-400 border border-green-500/30 rounded-full">
             Baru
           </span>
         )}
@@ -52,15 +53,15 @@ const NotificationItem = memo(function NotificationItem({
       {!isAcknowledged && userName && (
         <button
           onClick={handleAcknowledge}
-          className="mt-3 w-full btn-3d text-primary py-2 rounded-button text-sm font-medium min-h-touch"
+          className="mt-4 w-full py-3 border border-cyan-500/50 bg-cyan-500/10 text-cyan-400 rounded-xl text-base font-medium hover:bg-cyan-500/20 transition-all"
         >
           ✓ Tandai Sudah Dibaca
         </button>
       )}
 
       {isAcknowledged && (
-        <p className="mt-2 text-xs text-success flex items-center gap-1">
-          <span className="w-2 h-2 bg-success rounded-full"></span>
+        <p className="mt-3 text-sm text-green-400 flex items-center gap-2">
+          <span className="w-2 h-2 bg-green-400 rounded-full"></span>
           Sudah dibaca
         </p>
       )}
@@ -93,18 +94,18 @@ const EmployeeSelectForm = memo(function EmployeeSelectForm({
   }, []);
 
   return (
-    <div className="card-3d rounded-card p-4 mb-4">
-      <h3 className="font-semibold text-gray-100 mb-4">Kirim Notifikasi ke Karyawan</h3>
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="bg-black/40 border border-white/5 p-6 rounded-2xl mb-5">
+      <h3 className="text-lg font-bold text-white mb-5">Kirim Notifikasi ke Karyawan</h3>
+      <form onSubmit={handleSubmit} className="space-y-5">
         {/* Employee Selection Dropdown */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Pilih Karyawan <span className="text-danger">*</span>
+          <label className="block text-base font-medium text-white/70 mb-3">
+            Pilih Karyawan <span className="text-red-400">*</span>
           </label>
           <select
             value={selectedEmployee}
             onChange={(e) => onChange(e.target.value)}
-            className="w-full px-4 py-3 rounded-input input-3d text-gray-100 focus:outline-none min-h-touch"
+            className="w-full px-5 py-4 rounded-xl bg-black/50 border border-white/10 text-white focus:border-cyan-500 outline-none text-base"
             disabled={isSubmitting}
           >
             <option value="" className="text-gray-900">Pilih Karyawan...</option>
@@ -122,12 +123,12 @@ const EmployeeSelectForm = memo(function EmployeeSelectForm({
         </div>
 
         {/* Buttons */}
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <button
             type="button"
             onClick={onCancel}
             disabled={isSubmitting}
-            className="flex-1 btn-3d text-gray-300 py-3 rounded-card font-semibold disabled:opacity-50 min-h-touch"
+            className="flex-1 py-4 bg-black/50 border border-white/10 text-white/60 rounded-xl text-base font-medium disabled:opacity-50"
           >
             Batal
           </button>
@@ -198,10 +199,10 @@ export function Notifikasi() {
     <Layout title="Notifikasi">
       {/* Name Prompt Modal for First-time Access */}
       {showNamePrompt && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="glass-panel rounded-card p-6 max-w-sm w-full">
-            <h2 className="text-lg font-semibold text-center mb-4 text-primary neon-text">Selamat Datang!</h2>
-            <p className="text-gray-300 text-center mb-4">
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-black/90 border border-white/10 p-8 rounded-2xl max-w-md w-full">
+            <h2 className="text-2xl font-bold text-center mb-5 text-cyan-400">Selamat Datang!</h2>
+            <p className="text-base text-white/60 text-center mb-6">
               Silakan masukkan nama Anda untuk melanjutkan.
             </p>
             <input
@@ -209,13 +210,13 @@ export function Notifikasi() {
               value={tempName}
               onChange={(e) => setTempName(e.target.value)}
               placeholder="Masukkan nama Anda"
-              className="w-full px-4 py-3 rounded-input input-3d text-gray-100 placeholder-gray-500 focus:outline-none mb-4 min-h-touch"
+              className="w-full px-5 py-4 rounded-xl bg-black/50 border border-white/10 text-white placeholder-white/30 focus:border-cyan-500 outline-none text-base mb-5"
               autoFocus
             />
             <button
               onClick={handleSetName}
               disabled={!tempName.trim()}
-              className="w-full btn-3d text-primary py-3 rounded-card font-semibold disabled:opacity-50 disabled:cursor-not-allowed min-h-touch"
+              className="w-full py-4 border border-cyan-500/50 bg-cyan-500/10 text-cyan-400 rounded-xl text-base font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-cyan-500/20 transition-all"
             >
               Lanjutkan
             </button>
@@ -226,16 +227,12 @@ export function Notifikasi() {
       <div className="p-4">
         {/* Toggle Form Button */}
         {!showNamePrompt && (
-          <div className="btn-wrapper w-full mb-4">
-            <button
-              onClick={() => setShowForm(!showForm)}
-              className="btn w-full py-3"
-            >
-              <span className="btn-letter">
-                {showForm ? 'Batal' : '+ Kirim Notifikasi'}
-              </span>
-            </button>
-          </div>
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="w-full py-4 mb-5 bg-cyan-500/20 border border-cyan-500/50 rounded-xl text-cyan-400 text-base font-bold hover:bg-cyan-500/30 transition-all"
+          >
+            {showForm ? 'Batal' : '+ Kirim Notifikasi'}
+          </button>
         )}
 
         {/* Employee Selection Form - Just Dropdown */}
@@ -254,9 +251,9 @@ export function Notifikasi() {
 
         {/* Notifications List */}
         {sortedNotifications.length === 0 ? (
-          <div className="text-center py-12">
-            <span className="text-6xl">📭</span>
-            <p className="mt-4 text-gray-400">Tidak ada notifikasi</p>
+          <div className="text-center py-16">
+            <span className="text-7xl">📭</span>
+            <p className="mt-5 text-lg text-white/40">Tidak ada notifikasi</p>
           </div>
         ) : (
           <div className="space-y-4">

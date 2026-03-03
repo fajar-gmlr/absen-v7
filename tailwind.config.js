@@ -16,9 +16,12 @@ export default {
         danger: '#EF4444', // Red
         late: '#A855F7', // Purple
         // Deep dark backgrounds
-        'dark-bg': '#1a1a1a',
+        'dark-bg': '#000000',
         'dark-surface': '#101010',
         'dark-elevated': '#2a2a2a',
+        // Flat Holographic Colors
+        'neon-teal': '#14B8A6',
+        'neon-green': '#4ade80',
       },
       fontFamily: {
         sans: ['Inter', 'Roboto', 'system-ui', 'sans-serif'],

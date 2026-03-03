@@ -1,4 +1,5 @@
-import { formatTime } from '../../../utils/timeUtils';
+
+import { memo } from 'react';
 import type { AttendanceRecord, HealthCondition } from '../../../types';
 
 interface DailyViewProps {
@@ -13,7 +14,7 @@ interface DailyViewProps {
   getHealthColor: (condition: HealthCondition) => string;
 }
 
-export function DailyView({
+export const DailyView = memo(function DailyView({
   dailyDate,
   onDailyDateChange,
   todayRecords,
@@ -24,108 +25,184 @@ export function DailyView({
   getAttendanceStatus,
   getHealthColor,
 }: DailyViewProps) {
+  // Format time for display
+  const formatTime = (timestamp: string): string => {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+  };
+
   return (
     <div className="space-y-6">
-      <div className="bg-gray-800 p-4 rounded-lg flex items-center justify-between">
-        <label className="text-gray-300 font-medium">Berdasarkan Tanggal:</label>
-        <input
-          type="date"
-          value={dailyDate}
-          onChange={(e) => onDailyDateChange(e.target.value)}
-          className="input max-w-[200px]"
-        />
+      {/* Date Selector */}
+      <div className="bg-black/40 border border-white/5 p-6 rounded-2xl backdrop-blur-sm">
+        <div className="flex items-center justify-between">
+          <label className="text-base font-medium text-white/70">Select Date:</label>
+          <input
+            type="date"
+            value={dailyDate}
+            onChange={(e) => onDailyDateChange(e.target.value)}
+            className="bg-black/50 border border-white/10 rounded-xl px-5 py-3 text-base text-white focus:border-cyan-500 outline-none"
+          />
+        </div>
       </div>
+
       {/* Employees who submitted */}
-      <div>
-        <h3 className="font-semibold text-gray-100 mb-3">
-          ✅ Sudah Absen ({todayRecords.length})
+      <div className="bg-black/40 border border-white/5 p-6 rounded-2xl backdrop-blur-sm">
+        <h3 className="font-bold text-lg text-white mb-5 flex items-center gap-3">
+          <span className="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]"></span>
+          ✅ Already Checked In ({todayRecords.length})
         </h3>
-        <div className="space-y-2">
+        
+        <div className="space-y-3">
           {todayRecords.map((record) => {
             const isLate = getAttendanceStatus(record.timestamp) === 'late';
+            // Show custom work location if "lainnya" was selected
+            const displayLocation = record.workLocation === 'lainnya' && record.customWorkLocation 
+              ? record.customWorkLocation 
+              : record.workLocation;
             return (
               <div key={record.id}>
                 <button
                   onClick={() => onToggleCard(expandedCard === record.id ? null : record.id)}
-                  className={`w-full card-3d p-3 text-left transition-smooth ${isLate ? 'border-l-4 border-late' : ''
-                    }`}
+                  className={`w-full text-left transition-all duration-200 ${
+                    isLate 
+                      ? 'bg-purple-500/10 border-l-4 border-purple-500' 
+                      : 'bg-emerald-500/10 border-l-4 border-emerald-500'
+                  } rounded-xl p-4 hover:bg-white/5`}
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className={`w-3 h-3 rounded-full animate-pulse-slow ${getHealthColor(record.healthCondition)}`} />
-                      <span className="font-medium text-gray-100">
-                        {record.employeeInitial} - {record.employeeName}
-                      </span>
-                      {isLate && (
-                        <span className="text-xs bg-purple-900/30 text-purple-400 px-2 py-0.5 rounded border border-purple-500/30">
-                          Telat
-                        </span>
-                      )}
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 rounded-full border-2 border-cyan-500/40 flex items-center justify-center text-cyan-400 font-bold text-lg bg-cyan-500/5 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+                        {record.employeeInitial}
+                      </div>
+                      <div>
+                        <p className="text-lg font-bold text-white">
+                          {record.employeeName}
+                        </p>
+                        <p className="text-sm text-white/50 mt-1">
+                          {displayLocation}
+                        </p>
+                      </div>
                     </div>
-                    <span className="text-gray-400">
-                      {expandedCard === record.id ? '▲' : '▼'}
-                    </span>
+                    <div className="flex items-center gap-4">
+                      {/* Health Condition Lamp */}
+                      <div 
+                        className="w-4 h-4 rounded-full"
+                        style={{ 
+                          backgroundColor: getHealthColor(record.healthCondition),
+                          boxShadow: `0 0 10px ${getHealthColor(record.healthCondition)}`
+                        }}
+                        title={`Health: ${record.healthCondition === 'healthy-no-symptoms' ? 'Healthy' : 
+                          record.healthCondition === 'has-symptoms-not-checked' ? 'Has Symptoms' : 'Sick'}`
+                        }
+                      />
+                      <span className={`px-4 py-2 rounded-full text-sm font-bold ${
+                        isLate 
+                          ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' 
+                          : 'bg-green-500/20 text-green-400 border border-green-500/30'
+                      }`}>
+                        {isLate ? 'Late' : 'On Time'}
+                      </span>
+                      <span className="text-xl font-mono text-white font-bold">
+                        {formatTime(record.timestamp)}
+                      </span>
+                      <span className="text-white/30 text-xl">
+                        {expandedCard === record.id ? '▲' : '▼'}
+                      </span>
+                    </div>
                   </div>
                 </button>
 
                 {expandedCard === record.id && (
-                  <div className="card-3d p-3 mt-1 card-expanded">
-                    <p className="text-sm text-gray-300">
-                      <strong className="text-gray-100">Lokasi:</strong> {record.workLocation}
-                      {record.customWorkLocation && ` (${record.customWorkLocation})`}
-                    </p>
-                    <p className="text-sm text-gray-300 mt-1">
-                      <strong className="text-gray-100">Kemarin:</strong> {record.yesterdayWork}
-                    </p>
-                    <p className="text-sm text-gray-300 mt-1">
-                      <strong className="text-gray-100">Hari ini:</strong> {record.todayWork}
-                    </p>
-                    <p className="text-sm text-gray-300 mt-1">
-                      <strong className="text-gray-100">Besok:</strong> {record.tomorrowAgenda}
-                    </p>
-                    {record.suggestions && (
-                      <p className="text-sm text-gray-300 mt-1">
-                        <strong className="text-gray-100">Saran/Laporan:</strong> {record.suggestions}
-                      </p>
-                    )}
-                    <p className="text-xs text-gray-500 mt-2">
-                      Absen: {formatTime(record.timestamp)}
-                    </p>
+                  <div className="mt-3 p-5 bg-black/30 rounded-xl border border-white/10">
+                    <div className="grid grid-cols-2 gap-5">
+                      <div>
+                        <p className="text-xs font-bold text-white/50 uppercase tracking-wider">Work Location</p>
+                        <p className="text-base text-white mt-1">{displayLocation}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-white/50 uppercase tracking-wider">Yesterday</p>
+                        <p className="text-base text-white mt-1">{record.yesterdayWork || '-'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-white/50 uppercase tracking-wider">Today</p>
+                        <p className="text-base text-white mt-1">{record.todayWork || '-'}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-xs font-bold text-white/50 uppercase tracking-wider">Tomorrow</p>
+                        <p className="text-base text-white mt-1">{record.tomorrowAgenda || '-'}</p>
+                      </div>
+                      {record.suggestions && (
+                        <div className="col-span-2">
+                          <p className="text-xs font-bold text-white/50 uppercase tracking-wider">Notes</p>
+                          <p className="text-base text-white mt-1">{record.suggestions}</p>
+                        </div>
+                      )}
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className={`w-3 h-3 rounded-full`} style={{ backgroundColor: getHealthColor(record.healthCondition) }}></span>
+                        <span className="text-base text-white/60">
+                          {record.healthCondition === 'healthy-no-symptoms' ? 'Healthy' : 
+                           record.healthCondition === 'has-symptoms-not-checked' ? 'Has Symptoms' : 'Sick'}
+                        </span>
+                      </div>
+                      <span className="text-base text-white/40">
+                        Checked in: {formatTime(record.timestamp)}
+                      </span>
+                    </div>
                   </div>
                 )}
               </div>
             );
           })}
           {todayRecords.length === 0 && (
-            <p className="text-gray-500 text-center py-4">Belum ada yang absen hari ini</p>
+            <div className="text-center py-10 text-white/40 text-lg">
+              No check-ins recorded for this date
+            </div>
           )}
         </div>
       </div>
 
       {/* Employees who did NOT submit */}
-      <div>
-        <h3 className="font-semibold text-gray-100 mb-3">
-          ❌ Belum Absen / Invalid ({employeesWhoDidNotSubmit.length})
+      <div className="bg-black/40 border border-white/5 p-6 rounded-2xl backdrop-blur-sm">
+        <h3 className="font-bold text-lg text-white mb-5 flex items-center gap-3">
+          <span className="w-3 h-3 rounded-full bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.6)]"></span>
+          ❌ Not Checked In ({employeesWhoDidNotSubmit.length})
         </h3>
-        <div className="space-y-2">
+        
+        <div className="space-y-3">
           {employeesWhoDidNotSubmit.map((emp) => (
             <div
               key={emp.id}
-              className="card-3d p-3 bg-red-900/20 border border-red-500/30"
+              className="flex items-center gap-4 p-4 bg-red-500/10 border border-red-500/20 rounded-xl"
             >
-              <span className="font-medium text-red-400">
-                {emp.initial} - {emp.fullName}
+              <div className="w-14 h-14 rounded-full border-2 border-white/20 flex items-center justify-center text-white/50 font-bold text-lg bg-white/5">
+                {emp.initial}
+              </div>
+              <div className="flex-1">
+                <p className="text-lg text-white/70 font-medium">{emp.fullName}</p>
+              </div>
+              <span className="text-sm font-bold text-red-400 px-4 py-2 bg-red-500/20 rounded-full border border-red-500/30">
+                Absent
               </span>
             </div>
           ))}
           {employeesWhoDidNotSubmit.length === 0 && employees.length > 0 && (
-            <p className="text-success text-center py-4">Semua sudah absen! 🎉</p>
+            <div className="text-center py-8 text-emerald-400 text-lg font-bold bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+              🎉 All employees have checked in!
+            </div>
           )}
           {employees.length === 0 && (
-            <p className="text-gray-500 text-center py-4">Belum ada karyawan terdaftar</p>
+            <div className="text-center py-8 text-white/40 text-lg">
+              No employees registered
+            </div>
           )}
         </div>
       </div>
     </div>
   );
-}
+});
+
+export default DailyView;
+

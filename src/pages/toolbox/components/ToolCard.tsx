@@ -13,14 +13,14 @@ export function ToolCard({ id, name, icon, isActive, onClick }: ToolCardProps) {
   return (
     <button
       onClick={() => onClick(id)}
-      className={`p-4 rounded-card text-center transition-smooth card-3d ${
+      className={`p-4 rounded-card text-center transition-smooth holo-card ${
         isActive
-          ? 'bg-primary text-white border-primary'
-          : 'text-gray-300 hover:bg-gray-800'
+          ? 'holo-active'
+          : 'text-gray-300 hover:border-neon-teal/50'
       }`}
     >
       <span className="text-2xl">{icon}</span>
-      <p className="mt-2 font-medium">{name}</p>
+      <p className="mt-2 font-light">{name}</p>
     </button>
   );
 }

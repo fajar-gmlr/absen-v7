@@ -1,12 +1,19 @@
-import { formatDate } from '../../../utils/timeUtils';
+import { memo } from 'react';
 import type { Holiday, Employee } from '../../../types';
+
+interface DailyStats {
+  date: string;
+  status: 'ontime' | 'late' | 'absent' | 'weekend' | 'holiday' | 'working';
+}
 
 interface MonthlyStats {
   employee: Employee;
+  ontimeCount: number;
   lateCount: number;
-  absenCount: number;
-  tidakAbsenCount: number;
+  absentCount: number;
   totalBusinessDays: number;
+  attendanceRate: number;
+  dailyStats: DailyStats[];
 }
 
 interface MonthlyViewProps {
@@ -32,13 +39,14 @@ interface MonthlyViewProps {
   onExportExcel: () => void;
 }
 
-export function MonthlyView({
+const MONTHS = ['JANUARI', 'FEBRUARI', 'MARET', 'APRIL', 'MEI', 'JUNI', 'JULI', 'AGUSTUS', 'SEPTEMBER', 'OKTOBER', 'NOVEMBER', 'DESEMBER'];
+
+export const MonthlyView = memo(function MonthlyView({
   selectedMonth,
   selectedYear,
   onMonthChange,
   onYearChange,
   monthlyStats,
-  employees,
   holidays,
   showHolidayForm,
   isMultiDay,
@@ -54,266 +62,250 @@ export function MonthlyView({
   onDeleteHoliday,
   onExportExcel,
 }: MonthlyViewProps) {
+  const prevMonth = selectedMonth === 0 ? 11 : selectedMonth - 1;
+  const nextMonth = selectedMonth === 11 ? 0 : selectedMonth + 1;
+
   return (
-    <div className="space-y-4">
-      {/* Month/Year Selector and Export */}
-      <div className="card-3d p-4">
-        <div className="flex gap-2 mb-3">
-          <select
-            value={selectedMonth}
-            onChange={(e) => onMonthChange(parseInt(e.target.value))}
-            className="flex-1 p-2 border border-gray-700 rounded-card text-sm input-3d text-gray-100"
+    <div className="space-y-4 animate-in fade-in duration-500">
+      
+      {/* SELECTOR BULAN */}
+      <div className="bg-black/40 border border-white/5 p-8 rounded-2xl backdrop-blur-sm">
+        <div className="flex items-center justify-between max-w-lg mx-auto">
+          <button 
+            onClick={() => onMonthChange(prevMonth)}
+            className="text-white/30 hover:text-cyan-400 transition-all text-2xl p-3"
           >
-            {Array.from({ length: 12 }, (_, i) => (
-              <option key={i} value={i} className="text-gray-900">
-                {new Date(2024, i).toLocaleString('id-ID', { month: 'long' })}
-              </option>
-            ))}
-          </select>
-          <select
-            value={selectedYear}
-            onChange={(e) => onYearChange(parseInt(e.target.value))}
-            className="flex-1 p-2 border border-gray-700 rounded-card text-sm input-3d text-gray-100"
+            ◀
+          </button>
+          
+          <div className="flex flex-col items-center">
+            <div className="flex items-baseline gap-4">
+              <span className="text-sm font-bold tracking-[0.3em] text-white/20 uppercase">{MONTHS[prevMonth].slice(0,3)}</span>
+              <span className="text-3xl font-black tracking-tight text-white px-8 border-x border-white/10 text-center min-w-[280px]">
+                {MONTHS[selectedMonth]} {selectedYear}
+              </span>
+              <span className="text-sm font-bold tracking-[0.3em] text-white/20 uppercase">{MONTHS[nextMonth].slice(0,3)}</span>
+            </div>
+          </div>
+
+          <button 
+            onClick={() => onMonthChange(nextMonth)}
+            className="text-white/30 hover:text-cyan-400 transition-all text-2xl p-3"
           >
-            {[2024, 2025, 2026].map((year) => (
-              <option key={year} value={year} className="text-gray-900">{year}</option>
-            ))}
-          </select>
+            ▶
+          </button>
         </div>
+
+        {/* Year Navigation */}
+        <div className="flex items-center justify-center gap-6 mt-8">
+          <button 
+            onClick={() => onYearChange(selectedYear - 1)}
+            className="text-white/30 hover:text-cyan-400 transition-all text-xl p-3"
+          >
+            ◀
+          </button>
+          
+          <span className="text-2xl font-black tracking-tight text-white px-10 min-w-[140px] text-center">
+            {selectedYear}
+          </span>
+          
+          <button 
+            onClick={() => onYearChange(selectedYear + 1)}
+            className="text-white/30 hover:text-cyan-400 transition-all text-xl p-3"
+          >
+            ▶
+          </button>
+        </div>
+      </div>
+
+      {/* DATA TABLE MATRIX */}
+      <div className="bg-black/40 border border-white/5 rounded-2xl overflow-hidden shadow-2xl">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-white/5 bg-white/[0.02]">
+                <th className="p-5 text-sm font-bold text-white/40 uppercase tracking-widest">Employee</th>
+                <th className="p-5 text-sm font-bold text-white/40 uppercase tracking-widest text-center">Trend</th>
+                <th className="p-5 text-sm font-bold text-white/40 uppercase tracking-widest">Attendance Matrix (31 Days)</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/[0.05]">
+              {monthlyStats.map((stat) => {
+                return (
+                  <tr 
+                    key={stat.employee.id}
+                    className="group transition-colors hover:bg-white/[0.02]"
+                  >
+                    <td className="p-5">
+                      <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 rounded-full border-2 border-cyan-500/40 flex items-center justify-center text-cyan-400 font-bold text-lg bg-cyan-500/5 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+                          {stat.employee.initial}
+                        </div>
+                        <div>
+                          <p className="text-lg font-bold text-white group-hover:text-cyan-400 transition-colors">{stat.employee.fullName}</p>
+                          <p className="text-xs text-white/40 uppercase tracking-wider mt-1">ID: {stat.employee.id.slice(0,8)}</p>
+                        </div>
+                      </div>
+                    </td>
+                    
+                    <td className="p-5 text-center">
+                      <div className="flex flex-col items-center gap-2">
+                        <span className={`inline-block px-5 py-2 rounded-full text-sm font-bold tracking-wide ${
+                          stat.attendanceRate >= 90 ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 
+                          stat.attendanceRate >= 70 ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                        }`}>
+                          {stat.attendanceRate}%
+                        </span>
+                        <div className="flex gap-3 text-xs text-white/50">
+                          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500"></span> {stat.ontimeCount} On Time</span>
+                          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-purple-500"></span> {stat.lateCount} Late</span>
+                          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500"></span> {stat.absentCount} Absent</span>
+                        </div>
+                      </div>
+                    </td>
+                    
+                    <td className="p-5">
+                      <div className="flex gap-1 overflow-hidden">
+                        {stat.dailyStats.map((day, dIdx) => (
+                          <div
+                            key={dIdx}
+                            className={`w-3 h-8 rounded-sm transition-all duration-500 shrink-0 ${
+                              day.status === 'ontime' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' :
+                              day.status === 'late' ? 'bg-purple-600 shadow-[0_0_10px_rgba(147,51,234,0.7)]' :
+                              day.status === 'absent' ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]' :
+                              day.status === 'holiday' ? 'bg-white/30' :
+                              day.status === 'working' ? 'bg-blue-500/30' :
+                              'bg-white/5'
+                            }`}
+                            title={`${day.date}: ${day.status}`}
+                          />
+                        ))}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* EXPORT ACTION */}
+      <div className="flex justify-start">
+        <button 
+          onClick={onExportExcel} 
+          className="flex items-center gap-3 px-8 py-4 bg-white/5 border border-white/10 rounded-xl text-white hover:bg-white/10 hover:border-cyan-500/50 transition-all active:scale-95 shadow-xl group"
+        >
+          <span className="text-2xl group-hover:scale-125 transition-transform">📥</span>
+          <span className="text-sm font-bold tracking-widest uppercase">Export Analytics</span>
+        </button>
+      </div>
+
+      {/* HOLIDAY MANAGER SECTION */}
+      <div className="bg-black/40 border border-white/5 rounded-2xl overflow-hidden">
+        <button
+          onClick={onToggleHolidayForm}
+          className="w-full flex items-center justify-between p-6 text-white hover:bg-white/[0.02] transition-colors"
+        >
+          <div className="flex items-center gap-4">
+            <span className="text-2xl">📅</span>
+            <span className="text-sm font-black tracking-[0.2em] uppercase">Holiday Matrix Manager</span>
+          </div>
+          <span className={`text-xl transition-transform duration-300 ${showHolidayForm ? 'rotate-180' : ''}`}>▼</span>
+        </button>
         
-        <div className="btn-wrapper w-full">
-          <button
-            onClick={onExportExcel}
-            className="btn w-full py-2 text-sm"
-          >
-            <span className="btn-letter">📊</span>
-            <span className="btn-letter"> </span>
-            <span className="btn-letter">E</span>
-            <span className="btn-letter">x</span>
-            <span className="btn-letter">p</span>
-            <span className="btn-letter">o</span>
-            <span className="btn-letter">r</span>
-            <span className="btn-letter">t</span>
-            <span className="btn-letter"> </span>
-            <span className="btn-letter">k</span>
-            <span className="btn-letter">e</span>
-            <span className="btn-letter"> </span>
-            <span className="btn-letter">E</span>
-            <span className="btn-letter">x</span>
-            <span className="btn-letter">c</span>
-            <span className="btn-letter">e</span>
-            <span className="btn-letter">l</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Holiday Management */}
-      <HolidayManagement
-        holidays={holidays}
-        showForm={showHolidayForm}
-        isMultiDay={isMultiDay}
-        holidayDate={holidayDate}
-        holidayEndDate={holidayEndDate}
-        holidayName={holidayName}
-        onToggleForm={onToggleHolidayForm}
-        onMultiDayChange={onMultiDayChange}
-        onDateChange={onHolidayDateChange}
-        onEndDateChange={onHolidayEndDateChange}
-        onNameChange={onHolidayNameChange}
-        onSubmit={onAddHoliday}
-        onDelete={onDeleteHoliday}
-      />
-
-      {/* Monthly Stats */}
-      <div className="space-y-3">
-        {monthlyStats.map((stat) => (
-          <div key={stat.employee.id} className="card-3d p-4">
-            <div className="flex justify-between items-start">
-              <div className="w-full">
-                <h4 className="font-semibold text-gray-100">
-                  {stat.employee.initial} - {stat.employee.fullName}
-                </h4>
-                <div className="grid grid-cols-3 gap-2 mt-3">
-                  <div className="bg-green-900/30 p-2 rounded text-center">
-                    <p className="text-xs text-green-400">Absen</p>
-                    <p className="text-lg font-bold text-green-400">{stat.absenCount}</p>
-                    <p className="text-xs text-gray-500">hari</p>
-                  </div>
-                  <div className="bg-red-900/30 p-2 rounded text-center">
-                    <p className="text-xs text-red-400">Tidak Absen</p>
-                    <p className="text-lg font-bold text-red-400">{stat.tidakAbsenCount}</p>
-                    <p className="text-xs text-gray-500">hari</p>
-                  </div>
-                  <div className="bg-purple-900/30 p-2 rounded text-center">
-                    <p className="text-xs text-purple-400">Telat</p>
-                    <p className="text-lg font-bold text-purple-400">{stat.lateCount}</p>
-                    <p className="text-xs text-gray-500">hari</p>
-                  </div>
+        {showHolidayForm && (
+          <div className="p-6 border-t border-white/5 space-y-6 animate-in slide-in-from-top-4">
+            <form onSubmit={onAddHoliday} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-5">
+                <div className="flex items-center gap-4 p-4 bg-white/5 rounded-xl border border-white/5">
+                  <input
+                    type="checkbox"
+                    id="multiDayMonthly"
+                    checked={isMultiDay}
+                    onChange={(e) => onMultiDayChange(e.target.checked)}
+                    className="w-5 h-5 rounded border-white/10 bg-black text-cyan-500 focus:ring-cyan-500"
+                  />
+                  <label htmlFor="multiDayMonthly" className="text-sm font-bold text-white/60 uppercase tracking-wider cursor-pointer">
+                    Rentang Hari (Multi-day)
+                  </label>
                 </div>
-                <p className="text-xs text-gray-500 mt-2 text-center">
-                  Total hari kerja: {stat.totalBusinessDays} hari (tidak termasuk libur)
-                </p>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <p className="text-xs font-bold text-white/30 uppercase ml-1">Mulai</p>
+                    <input
+                      type="date"
+                      value={holidayDate}
+                      onChange={(e) => onHolidayDateChange(e.target.value)}
+                      className="w-full bg-black/50 border border-white/10 rounded-xl p-4 text-base text-white focus:border-cyan-500 outline-none"
+                      required
+                    />
+                  </div>
+                  {isMultiDay && (
+                    <div className="space-y-2">
+                      <p className="text-xs font-bold text-white/30 uppercase ml-1">Selesai</p>
+                      <input
+                        type="date"
+                        value={holidayEndDate}
+                        onChange={(e) => onHolidayEndDateChange(e.target.value)}
+                        min={holidayDate}
+                        className="w-full bg-black/50 border border-white/10 rounded-xl p-4 text-base text-white focus:border-cyan-500 outline-none"
+                        required
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
+
+              <div className="space-y-5">
+                <div className="space-y-2">
+                  <p className="text-xs font-bold text-white/30 uppercase ml-1">Nama Hari Libur</p>
+                  <input
+                    type="text"
+                    value={holidayName}
+                    onChange={(e) => onHolidayNameChange(e.target.value)}
+                    placeholder="Contoh: Libur Lebaran"
+                    className="w-full bg-black/50 border border-white/10 rounded-xl p-4 text-base text-white focus:border-cyan-500 outline-none"
+                    required
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="w-full py-4 bg-cyan-500/20 border border-cyan-500/50 rounded-xl text-cyan-400 text-sm font-black tracking-[0.2em] uppercase hover:bg-cyan-500/30 transition-all shadow-lg"
+                >
+                  SIMPAN KE DATABASE
+                </button>
+              </div>
+            </form>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-6 border-t border-white/5">
+              {holidays.length > 0 ? (
+                holidays.map((h) => (
+                  <div key={h.id} className="flex justify-between items-center p-4 bg-white/[0.03] border border-white/5 rounded-xl group hover:border-cyan-500/30 transition-all">
+                    <div>
+                      <p className="text-base font-bold text-white">{h.name}</p>
+                      <p className="text-sm text-white/40 font-mono tracking-wider mt-1">{h.date} {h.endDate ? `→ ${h.endDate}` : ''}</p>
+                    </div>
+                    <button
+                      onClick={() => onDeleteHoliday(h.id)}
+                      className="p-3 text-xl text-red-400 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/10 rounded-lg"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-full py-6 text-center text-white/20 text-sm font-bold tracking-widest uppercase">
+                  No Holidays Configured
+                </div>
+              )}
             </div>
           </div>
-        ))}
-        {employees.length === 0 && (
-          <p className="text-gray-500 text-center py-8">Belum ada karyawan terdaftar</p>
         )}
       </div>
     </div>
   );
-}
+});
 
-// Holiday Management Sub-component
-interface HolidayManagementProps {
-  holidays: Holiday[];
-  showForm: boolean;
-  isMultiDay: boolean;
-  holidayDate: string;
-  holidayEndDate: string;
-  holidayName: string;
-  onToggleForm: () => void;
-  onMultiDayChange: (value: boolean) => void;
-  onDateChange: (date: string) => void;
-  onEndDateChange: (date: string) => void;
-  onNameChange: (name: string) => void;
-  onSubmit: (e: React.FormEvent) => void;
-  onDelete: (id: string) => void;
-}
-
-export function HolidayManagement({
-  holidays,
-  showForm,
-  isMultiDay,
-  holidayDate,
-  holidayEndDate,
-  holidayName,
-  onToggleForm,
-  onMultiDayChange,
-  onDateChange,
-  onEndDateChange,
-  onNameChange,
-  onSubmit,
-  onDelete,
-}: HolidayManagementProps) {
-  const getHolidayDuration = (holiday: Holiday): number => {
-    if (!holiday.endDate) return 1;
-    const start = new Date(holiday.date);
-    const end = new Date(holiday.endDate);
-    const diffTime = Math.abs(end.getTime() - start.getTime());
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-  };
-
-  return (
-    <div className="card-3d p-4">
-      <div className="flex justify-between items-center mb-3">
-        <h3 className="font-semibold text-gray-100">📅 Hari Libur</h3>
-        <div className="btn-wrapper">
-          <button
-            onClick={onToggleForm}
-            className="btn text-sm px-3 py-1"
-          >
-            <span className="btn-letter">
-              {showForm ? 'Batal' : '+ Tambah'}
-            </span>
-          </button>
-        </div>
-      </div>
-      
-      {showForm && (
-        <form onSubmit={onSubmit} className="space-y-2 mb-3">
-          {/* Multi-day toggle */}
-          <div className="flex items-center gap-2 mb-2">
-            <input
-              type="checkbox"
-              id="multiDay"
-              checked={isMultiDay}
-              onChange={(e) => {
-                onMultiDayChange(e.target.checked);
-                if (!e.target.checked) {
-                  onEndDateChange('');
-                }
-              }}
-              className="w-4 h-4 rounded border-gray-600"
-            />
-            <label htmlFor="multiDay" className="text-sm text-gray-300">
-              Libur beberapa hari
-            </label>
-          </div>
-
-          <input
-            type="date"
-            value={holidayDate}
-            onChange={(e) => onDateChange(e.target.value)}
-            className="w-full p-2 border border-gray-700 rounded-card text-sm input-3d text-gray-100"
-            required
-          />
-          
-          {isMultiDay && (
-            <div className="space-y-1">
-              <label className="text-xs text-gray-500">Sampai tanggal:</label>
-              <input
-                type="date"
-                value={holidayEndDate}
-                onChange={(e) => onEndDateChange(e.target.value)}
-                min={holidayDate}
-                className="w-full p-2 border border-gray-700 rounded-card text-sm input-3d text-gray-100"
-                required={isMultiDay}
-              />
-            </div>
-          )}
-          
-          <input
-            type="text"
-            value={holidayName}
-            onChange={(e) => onNameChange(e.target.value)}
-            placeholder="Nama hari libur"
-            className="w-full p-2 border border-gray-700 rounded-card text-sm input-3d text-gray-100"
-            required
-          />
-          <div className="btn-wrapper w-full">
-            <button
-              type="submit"
-              className="btn w-full py-2 text-sm"
-            >
-              <span className="btn-letter">S</span>
-              <span className="btn-letter">i</span>
-              <span className="btn-letter">m</span>
-              <span className="btn-letter">p</span>
-              <span className="btn-letter">a</span>
-              <span className="btn-letter">n</span>
-            </button>
-          </div>
-        </form>
-      )}
-      
-      <div className="space-y-2 max-h-40 overflow-y-auto">
-        {holidays.length === 0 ? (
-          <p className="text-gray-400 text-sm text-center py-2">Belum ada hari libur</p>
-        ) : (
-          holidays.map((holiday) => (
-            <div key={holiday.id} className="flex justify-between items-center bg-gray-800 p-2 rounded">
-              <div>
-                <p className="text-sm font-medium text-gray-100">{holiday.name}</p>
-                <p className="text-xs text-gray-500">
-                  {holiday.isMultiDay && holiday.endDate 
-                    ? `${formatDate(holiday.date)} - ${formatDate(holiday.endDate)}`
-                    : formatDate(holiday.date)
-                  }
-                  {holiday.isMultiDay && holiday.endDate && <span className="ml-1 text-primary">({getHolidayDuration(holiday)} hari)</span>}
-                </p>
-              </div>
-              <button
-                onClick={() => onDelete(holiday.id)}
-                className="text-danger text-xs px-2 py-1 hover:bg-red-900/30 rounded transition-smooth"
-              >
-                Hapus
-              </button>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
-  );
-}
+export default MonthlyView;

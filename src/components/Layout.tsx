@@ -13,34 +13,34 @@ export function Layout({ children, title }: LayoutProps) {
     { path: '/notifikasi', label: 'Notifikasi' },
     { path: '/managerial', label: 'Managerial' },
     { path: '/toolbox', label: 'Toolbox' },
-    { path: '/notepad', label: 'Notepad' },
+    { path: '/notepad', label: 'Catatan' },
   ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-transparent relative z-10">
-      {/* Header - Glassmorphism effect */}
-      <header className="glass-panel px-4 py-3 sticky top-0 z-50 backdrop-blur-md bg-dark-surface/60">
-        <h1 className="text-lg font-semibold text-center text-primary neon-text">{title}</h1>
+    <div className="min-h-screen flex flex-col relative z-10">
+      {/* Header - Flat Holographic Panel */}
+      <header className="holo-panel px-4 py-4 sticky top-0 z-50">
+        <h1 className="text-xl font-semibold text-center text-white">{title}</h1>
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto pb-24 px-4 pt-4 relative z-10">
+      <main className="flex-1 overflow-y-auto pb-28 px-4 pt-4 relative z-10">
         {children}
       </main>
 
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 glass-panel px-2 py-3 mx-4 mb-4 rounded-card z-50">
-        <div className="flex justify-around items-center gap-2">
+      {/* Bottom Navigation - Flat Holographic Panel */}
+      <nav className="fixed bottom-0 left-0 right-0 holo-panel px-3 py-4 mx-3 mb-3 rounded-2xl z-50">
+        <div className="flex justify-around items-center gap-1">
           {navItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
               className={({ isActive }) =>
-                isActive ? 'btn-wrapper' : 'btn-wrapper opacity-60 hover:opacity-100'
+                isActive ? 'flex-1' : 'flex-1 opacity-70 hover:opacity-100'
               }
             >
-              <div className="btn py-2 px-2">
-                <span className="btn-letter text-xs whitespace-nowrap">{item.label}</span>
+              <div className="py-3 px-2 text-center">
+                <span className="text-sm font-semibold whitespace-nowrap text-white">{item.label}</span>
               </div>
             </NavLink>
           ))}
