@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { shallow } from 'zustand/shallow';
 import type { 
   Employee, 
   AttendanceRecord, 
@@ -243,3 +244,39 @@ export const initializeFirebaseSync = () => {
     firebaseUnsubscribers = [];
   };
 };
+
+// ============================================
+// OPTIMIZED SELECTORS FOR COMPONENT PERFORMANCE
+// ============================================
+
+/**
+ * Selector for employees - use this in Absensi to prevent
+ * re-renders when unrelated store data (notes, notifications) updates
+ */
+export const useEmployees = () => useAppStore((state) => state.employees);
+
+/**
+ * Selector for attendance records - use this in Absensi to prevent
+ * re-renders when unrelated store data (notes, notifications) updates
+ */
+export const useAttendanceRecords = () => useAppStore((state) => state.attendanceRecords);
+
+/**
+ * Memoized selector for checking if employee has submitted today
+ * Use with: const hasSubmitted = useHasSubmittedToday(employeeId)
+ */
+export const useHasSubmittedToday = (employeeId: string) => 
+  useAppStore((state) => {
+    const today = getLocalTodayString();
+    return state.attendanceRecords.some(
+      (record) => record.employeeId === employeeId && record.timestamp.startsWith(today)
+    );
+  });
+
+/**
+ * Selector for addAttendance action
+ */
+export const useAddAttendance = () => useAppStore((state) => state.addAttendance);
+
+// Re-export shallow for component use
+export { shallow };

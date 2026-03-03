@@ -1,8 +1,12 @@
-import { useState } from 'react';
+import { useState, useCallback, useMemo, memo, useRef, useEffect } from 'react';
 import { Layout } from '../components/Layout';
-import { useAppStore } from '../store/useAppStore';
+import { useEmployees, useAddAttendance, useHasSubmittedToday } from '../store/useAppStore';
 import { checkTimeGate, getTimestamp } from '../utils/timeUtils';
 import type { AttendanceRecord, HealthCondition, AttendanceStatus } from '../types';
+
+// ============================================
+// CONSTANTS
+// ============================================
 
 const WORK_LOCATIONS = [
   'Kantor Ciwastra',
@@ -19,9 +23,324 @@ const HEALTH_CONDITIONS: { value: HealthCondition; label: string }[] = [
   { value: 'sick-checked-medical', label: 'Sakit, sudah periksa tenaga medis' },
 ];
 
+// ============================================
+// DEBOUNCED TEXTAREA COMPONENT
+// ============================================
+
+interface DebouncedTextareaProps {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  rows?: number;
+  label: string;
+  fieldName: string;
+  shakeFields: Set<string>;
+}
+
+const DEBOUNCE_DELAY = 300; // ms
+
+function DebouncedTextarea({ 
+  value, 
+  onChange, 
+  placeholder, 
+  rows = 3, 
+  label,
+  fieldName,
+  shakeFields
+}: DebouncedTextareaProps) {
+  const [localValue, setLocalValue] = useState(value);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Sync external value changes
+  useEffect(() => {
+    setLocalValue(value);
+  }, [value]);
+
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value;
+    setLocalValue(newValue);
+    
+    // Clear existing debounce timer
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    
+    // Set new debounce timer
+    debounceRef.current = setTimeout(() => {
+      onChange(newValue);
+    }, DEBOUNCE_DELAY);
+  }, [onChange]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+        // Final sync on unmount
+        if (localValue !== value) {
+          onChange(localValue);
+        }
+      }
+    };
+  }, []);
+
+  const inputClass = `w-full px-4 py-3 rounded-input input-3d text-gray-100 placeholder-gray-500 focus:outline-none min-h-touch ${
+    shakeFields.has(fieldName) ? 'border-danger shake' : ''
+  }`;
+
+  return (
+    <div className="card-3d rounded-card p-4">
+      <label className="block text-sm font-medium text-gray-300 mb-2">
+        {label} <span className="text-danger">*</span>
+      </label>
+      <textarea
+        value={localValue}
+        onChange={handleChange}
+        rows={rows}
+        placeholder={placeholder}
+        className={inputClass}
+      />
+    </div>
+  );
+}
+
+// Memoized version
+const MemoizedDebouncedTextarea = memo(DebouncedTextarea);
+
+// ============================================
+// TEXT INPUT COMPONENT
+// ============================================
+
+interface TextInputProps {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  label: string;
+  fieldName: string;
+  shakeFields: Set<string>;
+}
+
+function TextInput({ value, onChange, placeholder, label, fieldName, shakeFields }: TextInputProps) {
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    onChange(e.target.value);
+  }, [onChange]);
+
+  const inputClass = `w-full px-4 py-3 rounded-input input-3d text-gray-100 placeholder-gray-500 focus:outline-none min-h-touch ${
+    shakeFields.has(fieldName) ? 'border-danger shake' : ''
+  }`;
+
+  return (
+    <div className="card-3d rounded-card p-4">
+      <label className="block text-sm font-medium text-gray-300 mb-2">
+        {label} <span className="text-danger">*</span>
+      </label>
+      <input
+        type="text"
+        value={value}
+        onChange={handleChange}
+        placeholder={placeholder}
+        className={inputClass}
+      />
+    </div>
+  );
+}
+
+const MemoizedTextInput = memo(TextInput);
+
+// ============================================
+// EMPLOYEE SELECT COMPONENT
+// ============================================
+
+interface EmployeeSelectProps {
+  value: string;
+  onChange: (value: string) => void;
+  employees: { id: string; initial: string; fullName: string }[];
+  shakeFields: Set<string>;
+}
+
+function EmployeeSelect({ value, onChange, employees, shakeFields }: EmployeeSelectProps) {
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    onChange(e.target.value);
+  }, [onChange]);
+
+  const inputClass = `w-full px-4 py-3 rounded-input input-3d text-gray-100 placeholder-gray-500 focus:outline-none min-h-touch ${
+    shakeFields.has('employee') ? 'border-danger shake' : ''
+  }`;
+
+  return (
+    <div className="card-3d rounded-card p-4">
+      <label className="block text-sm font-medium text-gray-300 mb-2">
+        Inisial - Nama Lengkap <span className="text-danger">*</span>
+      </label>
+      <select
+        value={value}
+        onChange={handleChange}
+        className={inputClass}
+      >
+        <option value="" className="text-gray-900">Pilih Karyawan</option>
+        {employees.map((emp) => (
+          <option key={emp.id} value={emp.id} className="text-gray-900">
+            {emp.initial} - {emp.fullName}
+          </option>
+        ))}
+        {employees.length === 0 && (
+          <option value="" disabled className="text-gray-900">
+            Tidak ada karyawan. Hubungi manager.
+          </option>
+        )}
+      </select>
+    </div>
+  );
+}
+
+const MemoizedEmployeeSelect = memo(EmployeeSelect);
+
+// ============================================
+// WORK LOCATION SELECT COMPONENT
+// ============================================
+
+interface WorkLocationSelectProps {
+  value: string;
+  onChange: (value: string) => void;
+  shakeFields: Set<string>;
+}
+
+function WorkLocationSelect({ value, onChange, shakeFields }: WorkLocationSelectProps) {
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    onChange(e.target.value);
+  }, [onChange]);
+
+  const inputClass = `w-full px-4 py-3 rounded-input input-3d text-gray-100 placeholder-gray-500 focus:outline-none min-h-touch ${
+    shakeFields.has('workLocation') ? 'border-danger shake' : ''
+  }`;
+
+  return (
+    <div className="card-3d rounded-card p-4">
+      <label className="block text-sm font-medium text-gray-300 mb-2">
+        Lokasi Kerja <span className="text-danger">*</span>
+      </label>
+      <select
+        value={value}
+        onChange={handleChange}
+        className={inputClass}
+      >
+        <option value="" className="text-gray-900">Pilih Lokasi</option>
+        {WORK_LOCATIONS.map((loc) => (
+          <option key={loc} value={loc} className="text-gray-900">
+            {loc}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+const MemoizedWorkLocationSelect = memo(WorkLocationSelect);
+
+// ============================================
+// HEALTH CONDITION RADIO COMPONENT
+// ============================================
+
+interface HealthConditionRadioProps {
+  value: HealthCondition;
+  onChange: (value: HealthCondition) => void;
+  shakeFields: Set<string>;
+}
+
+function HealthConditionRadio({ value, onChange, shakeFields }: HealthConditionRadioProps) {
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    onChange(e.target.value as HealthCondition);
+  }, [onChange]);
+
+  return (
+    <div className="card-3d rounded-card p-4">
+      <label className="block text-sm font-medium text-gray-300 mb-3">
+        Kondisi Kesehatan <span className="text-danger">*</span>
+      </label>
+      <div className="space-y-3">
+        {HEALTH_CONDITIONS.map((condition) => (
+          <label
+            key={condition.value}
+            className={`flex items-center p-3 rounded-button cursor-pointer transition-3d ${
+              shakeFields.has('healthCondition')
+                ? 'border border-danger bg-red-500/10 shake'
+                : value === condition.value
+                ? 'btn-3d text-primary'
+                : 'input-3d text-gray-300 hover:bg-white/5'
+            }`}
+          >
+            <input
+              type="radio"
+              name="healthCondition"
+              value={condition.value}
+              checked={value === condition.value}
+              onChange={handleChange}
+              className="w-4 h-4 text-primary accent-primary"
+            />
+            <span className="ml-3 text-sm">{condition.label}</span>
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const MemoizedHealthConditionRadio = memo(HealthConditionRadio);
+
+// ============================================
+// POPUP MODAL COMPONENT
+// ============================================
+
+interface PopupModalProps {
+  show: boolean;
+  message: string;
+  status: 'success' | 'error' | 'warning';
+  onClose: () => void;
+}
+
+function PopupModal({ show, message, status, onClose }: PopupModalProps) {
+  if (!show) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="glass-panel rounded-card p-6 max-w-sm w-full animate-pulse-slow">
+        <div className="text-center">
+          <div
+            className={`text-4xl mb-4 ${
+              status === 'success'
+                ? 'text-success neon-glow'
+                : status === 'warning'
+                ? 'text-warning'
+                : 'text-danger'
+            }`}
+          >
+            {status === 'success' ? '✅' : status === 'warning' ? '⚠️' : '❌'}
+          </div>
+          <p className="text-gray-200 text-lg">{message}</p>
+          <div className="btn-wrapper w-full mt-6">
+            <button onClick={onClose} className="btn w-full py-3">
+              <span className="btn-letter">O</span>
+              <span className="btn-letter">K</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const MemoizedPopupModal = memo(PopupModal);
+
+// ============================================
+// MAIN ABSENSI COMPONENT
+// ============================================
+
 export function Absensi() {
-  const { employees, addAttendance, hasSubmittedToday } = useAppStore();
+  // Use optimized selectors to prevent re-renders from unrelated store data
+  const employees = useEmployees();
+  const addAttendance = useAddAttendance();
   
+  // Local state for form
   const [selectedEmployee, setSelectedEmployee] = useState('');
   const [workLocation, setWorkLocation] = useState('');
   const [customWorkLocation, setCustomWorkLocation] = useState('');
@@ -37,8 +356,8 @@ export function Absensi() {
   
   const [shakeFields, setShakeFields] = useState<Set<string>>(new Set());
 
-  const validateForm = (): boolean => {
-    // 1. Gather all default required fields
+  // Memoized validation function
+  const validateForm = useCallback((): boolean => {
     const requiredFields = [
       { key: 'employee', value: selectedEmployee },
       { key: 'workLocation', value: workLocation },
@@ -49,15 +368,12 @@ export function Absensi() {
       { key: 'suggestions', value: suggestions },
     ];
 
-    // 2. Only require customWorkLocation if "Lainnya" is selected
     if (workLocation === 'Lainnya') {
       requiredFields.push({ key: 'customWorkLocation', value: customWorkLocation });
     }
 
-    // 3. Find any fields that are empty (handling potential null/undefined values safely)
     const emptyFields = requiredFields.filter(f => !f.value || (typeof f.value === 'string' && !f.value.trim()));
     
-    // 4. If there are empty fields, trigger the shake animation and block submission
     if (emptyFields.length > 0) {
       setShakeFields(new Set(emptyFields.map(f => f.key)));
       setTimeout(() => setShakeFields(new Set()), 500);
@@ -65,12 +381,15 @@ export function Absensi() {
     }
 
     return true;
-  };
+  }, [selectedEmployee, workLocation, healthCondition, yesterdayWork, todayWork, tomorrowAgenda, suggestions, customWorkLocation]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Check if already submitted today using optimized selector
+  const hasSubmittedToday = useHasSubmittedToday(selectedEmployee);
+
+  // Memoized submit handler
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Check time gate first
     const timeGate = checkTimeGate();
     
     if (!timeGate.allowed) {
@@ -80,20 +399,17 @@ export function Absensi() {
       return;
     }
 
-    // Validate form
     if (!validateForm()) {
       return;
     }
 
-    // Check for duplicate submission
-    if (selectedEmployee && hasSubmittedToday(selectedEmployee)) {
+    if (selectedEmployee && hasSubmittedToday) {
       setPopupStatus('warning');
       setPopupMessage('Anda sudah absen hari ini!');
       setShowPopup(true);
       return;
     }
 
-    // Get employee details
     const employee = employees.find(emp => emp.id === selectedEmployee);
     
     const record: AttendanceRecord = {
@@ -132,167 +448,103 @@ export function Absensi() {
       setPopupMessage('Gagal menyimpan absensi. Silakan coba lagi.');
       setShowPopup(true);
     }
-  };
+  }, [validateForm, selectedEmployee, hasSubmittedToday, employees, addAttendance, workLocation, customWorkLocation, healthCondition, yesterdayWork, todayWork, tomorrowAgenda, suggestions]);
 
-  const inputClass = (fieldName: string) =>
-    `w-full px-4 py-3 rounded-input input-3d text-gray-100 placeholder-gray-500 focus:outline-none min-h-touch ${
-      shakeFields.has(fieldName) ? 'border-danger shake' : ''
-    }`;
+  // Memoized close popup handler
+  const handleClosePopup = useCallback(() => {
+    setShowPopup(false);
+  }, []);
+
+  // Work location change handler (clears custom location if not "Lainnya")
+  const handleWorkLocationChange = useCallback((value: string) => {
+    setWorkLocation(value);
+    if (value !== 'Lainnya') {
+      setCustomWorkLocation('');
+    }
+  }, []);
+
+  // Memoized shake fields for sub-components
+  const shakeFieldsMemo = useMemo(() => shakeFields, [shakeFields]);
 
   return (
     <Layout title="Absensi Harian">
       <div className="p-4">
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Employee Selection */}
-          <div className="card-3d rounded-card p-4">
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Inisial - Nama Lengkap <span className="text-danger">*</span>
-            </label>
-            <select
-              value={selectedEmployee}
-              onChange={(e) => setSelectedEmployee(e.target.value)}
-              className={inputClass('employee')}
-            >
-              <option value="" className="text-gray-900">Pilih Karyawan</option>
-              {employees.map((emp) => (
-                <option key={emp.id} value={emp.id} className="text-gray-900">
-                  {emp.initial} - {emp.fullName}
-                </option>
-              ))}
-              {employees.length === 0 && (
-                <option value="" disabled className="text-gray-900">
-                  Tidak ada karyawan. Hubungi manager.
-                </option>
-              )}
-            </select>
-          </div>
+          <MemoizedEmployeeSelect
+            value={selectedEmployee}
+            onChange={setSelectedEmployee}
+            employees={employees}
+            shakeFields={shakeFieldsMemo}
+          />
 
           {/* Work Location */}
-          <div className="card-3d rounded-card p-4">
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Lokasi Kerja <span className="text-danger">*</span>
-            </label>
-            <select
-              value={workLocation}
-              onChange={(e) => {
-                setWorkLocation(e.target.value);
-                if (e.target.value !== 'Lainnya') {
-                  setCustomWorkLocation('');
-                }
-              }}
-              className={inputClass('workLocation')}
-            >
-              <option value="" className="text-gray-900">Pilih Lokasi</option>
-              {WORK_LOCATIONS.map((loc) => (
-                <option key={loc} value={loc} className="text-gray-900">
-                  {loc}
-                </option>
-              ))}
-            </select>
-          </div>
+          <MemoizedWorkLocationSelect
+            value={workLocation}
+            onChange={handleWorkLocationChange}
+            shakeFields={shakeFieldsMemo}
+          />
 
           {/* Custom Work Location (conditional) */}
           {workLocation === 'Lainnya' && (
-            <div className="card-3d rounded-card p-4">
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Lokasi Kerja Lainnya <span className="text-danger">*</span>
-              </label>
-              <input
-                type="text"
-                value={customWorkLocation}
-                onChange={(e) => setCustomWorkLocation(e.target.value)}
-                placeholder="Masukkan lokasi kerja"
-                className={inputClass('customWorkLocation')}
-              />
-            </div>
+            <MemoizedTextInput
+              value={customWorkLocation}
+              onChange={setCustomWorkLocation}
+              placeholder="Masukkan lokasi kerja"
+              label="Lokasi Kerja Lainnya"
+              fieldName="customWorkLocation"
+              shakeFields={shakeFieldsMemo}
+            />
           )}
 
           {/* Health Condition */}
-          <div className="card-3d rounded-card p-4">
-            <label className="block text-sm font-medium text-gray-300 mb-3">
-              Kondisi Kesehatan <span className="text-danger">*</span>
-            </label>
-            <div className="space-y-3">
-              {HEALTH_CONDITIONS.map((condition) => (
-                <label
-                  key={condition.value}
-                  className={`flex items-center p-3 rounded-button cursor-pointer transition-3d ${
-                    shakeFields.has('healthCondition')
-                      ? 'border border-danger bg-red-500/10 shake'
-                      : healthCondition === condition.value
-                      ? 'btn-3d text-primary'
-                      : 'input-3d text-gray-300 hover:bg-white/5'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="healthCondition"
-                    value={condition.value}
-                    checked={healthCondition === condition.value}
-                    onChange={(e) => setHealthCondition(e.target.value as HealthCondition)}
-                    className="w-4 h-4 text-primary accent-primary"
-                  />
-                  <span className="ml-3 text-sm">{condition.label}</span>
-                </label>
-              ))}
-            </div>
-          </div>
+          <MemoizedHealthConditionRadio
+            value={healthCondition}
+            onChange={setHealthCondition}
+            shakeFields={shakeFieldsMemo}
+          />
 
-          {/* Yesterday Work */}
-          <div className="card-3d rounded-card p-4">
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Laporan pekerjaan hari sebelumnya <span className="text-danger">*</span>
-            </label>
-            <textarea
-              value={yesterdayWork}
-              onChange={(e) => setYesterdayWork(e.target.value)}
-              rows={3}
-              placeholder="Apa pekerjaan yang telah diselesaikan?"
-              className={inputClass('yesterdayWork')}
-            />
-          </div>
+          {/* Yesterday Work - Debounced */}
+          <MemoizedDebouncedTextarea
+            value={yesterdayWork}
+            onChange={setYesterdayWork}
+            placeholder="Apa pekerjaan yang telah diselesaikan?"
+            label="Laporan pekerjaan hari sebelumnya"
+            fieldName="yesterdayWork"
+            shakeFields={shakeFieldsMemo}
+          />
 
-          {/* Today Work */}
-          <div className="card-3d rounded-card p-4">
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Pekerjaan hari ini <span className="text-danger">*</span>
-            </label>
-            <textarea
-              value={todayWork}
-              onChange={(e) => setTodayWork(e.target.value)}
-              rows={3}
-              placeholder="Apa rencana pekerjaan hari ini?"
-              className={inputClass('todayWork')}
-            />
-          </div>
+          {/* Today Work - Debounced */}
+          <MemoizedDebouncedTextarea
+            value={todayWork}
+            onChange={setTodayWork}
+            placeholder="Apa rencana pekerjaan hari ini?"
+            label="Pekerjaan hari ini"
+            fieldName="todayWork"
+            shakeFields={shakeFieldsMemo}
+          />
 
-          {/* Tomorrow Agenda */}
-          <div className="card-3d rounded-card p-4">
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Agenda besok <span className="text-danger">*</span>
-            </label>
-            <textarea
-              value={tomorrowAgenda}
-              onChange={(e) => setTomorrowAgenda(e.target.value)}
-              rows={2}
-              placeholder="Apa rencana pekerjaan untuk besok?"
-              className={inputClass('tomorrowAgenda')}
-            />
-          </div>
+          {/* Tomorrow Agenda - Debounced */}
+          <MemoizedDebouncedTextarea
+            value={tomorrowAgenda}
+            onChange={setTomorrowAgenda}
+            placeholder="Apa rencana pekerjaan untuk besok?"
+            label="Agenda besok"
+            fieldName="tomorrowAgenda"
+            rows={2}
+            shakeFields={shakeFieldsMemo}
+          />
 
-          {/* Suggestions */}
-          <div className="card-3d rounded-card p-4">
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Saran dan/atau Laporan <span className="text-danger">*</span>
-            </label>
-            <textarea
-              value={suggestions}
-              onChange={(e) => setSuggestions(e.target.value)}
-              rows={2}
-              placeholder="Saran atau laporan lainnya..."
-              className={inputClass('suggestions')}
-            />
-          </div>
+          {/* Suggestions - Debounced */}
+          <MemoizedDebouncedTextarea
+            value={suggestions}
+            onChange={setSuggestions}
+            placeholder="Saran atau laporan lainnya..."
+            label="Saran dan/atau Laporan"
+            fieldName="suggestions"
+            rows={2}
+            shakeFields={shakeFieldsMemo}
+          />
 
           {/* Submit Button */}
           <div className="btn-wrapper w-full mt-6">
@@ -315,33 +567,14 @@ export function Absensi() {
         </form>
 
         {/* Popup Modal */}
-        {showPopup && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="glass-panel rounded-card p-6 max-w-sm w-full animate-pulse-slow">
-              <div className="text-center">
-                <div
-                  className={`text-4xl mb-4 ${
-                    popupStatus === 'success'
-                      ? 'text-success neon-glow'
-                      : popupStatus === 'warning'
-                      ? 'text-warning'
-                      : 'text-danger'
-                  }`}
-                >
-                  {popupStatus === 'success' ? '✅' : popupStatus === 'warning' ? '⚠️' : '❌'}
-                </div>
-                <p className="text-gray-200 text-lg">{popupMessage}</p>
-                <div className="btn-wrapper w-full mt-6">
-                  <button onClick={() => setShowPopup(false)} className="btn w-full py-3">
-                    <span className="btn-letter">O</span>
-                    <span className="btn-letter">K</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        <MemoizedPopupModal
+          show={showPopup}
+          message={popupMessage}
+          status={popupStatus}
+          onClose={handleClosePopup}
+        />
       </div>
     </Layout>
   );
 }
+

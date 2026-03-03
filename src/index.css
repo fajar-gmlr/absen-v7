@@ -320,6 +320,30 @@ textarea {
   .transition-3d {
     transition: all 0.3s ease;
   }
+
+  /* GPU-accelerated shake animation */
+  .shake {
+    animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+    will-change: transform;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+  }
+
+  @keyframes shake {
+    10%, 90% {
+      transform: translate3d(-1px, 0, 0);
+    }
+    20%, 80% {
+      transform: translate3d(2px, 0, 0);
+    }
+    30%, 50%, 70% {
+      transform: translate3d(-4px, 0, 0);
+    }
+    40%, 60% {
+      transform: translate3d(4px, 0, 0);
+    }
+  }
 }
 
 /* Scrollbar styling */
@@ -340,4 +364,55 @@ textarea {
 
 ::-webkit-scrollbar-thumb:hover {
   background: hsla(145deg, 100%, 70%, 0.5);
+}
+
+/* Mobile Performance Optimizations */
+@media (max-width: 768px) {
+  /* Reduce or disable backdrop-filter on mobile to save CPU/GPU */
+  .glass-panel,
+  .backdrop-blur-sm {
+    backdrop-filter: blur(4px) !important;
+    /* Fallback for browsers that don't support backdrop-filter */
+    -webkit-backdrop-filter: blur(4px) !important;
+  }
+  
+  /* Disable heavy blur on form inputs */
+  .input-3d {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  
+  /* Optimize card shadows for mobile */
+  .card-3d {
+    box-shadow: 
+      0 4px 16px rgba(0, 0, 0, 0.4),
+      0 1px 4px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+  
+  /* Reduce transitions on mobile for better performance */
+  .card-3d,
+  .input-3d {
+    transition: none;
+  }
+  
+  /* GPU layer promotion for frequently animated elements */
+  .shake {
+    transform: translateZ(0);
+  }
+  
+  /* Reduce popup backdrop blur on mobile */
+  [class*="backdrop-blur"] {
+    backdrop-filter: blur(2px) saturate(80%) !important;
+    -webkit-backdrop-filter: blur(2px) saturate(80%) !important;
+  }
+}
+
+/* Very small devices - further reduce effects */
+@media (max-width: 480px) {
+  .glass-panel {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: rgba(26, 26, 26, 0.95);
+  }
 }
