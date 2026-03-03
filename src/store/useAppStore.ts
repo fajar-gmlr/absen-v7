@@ -26,6 +26,7 @@ import {
   addHolidayToDb,
   deleteHolidayFromDb,
 } from '../firebase/config';
+import { getLocalTodayString } from '../utils/timeUtils';
 import type { Unsubscribe } from 'firebase/database';
 
 // Global array to track Firebase subscriptions
@@ -112,7 +113,7 @@ export const useAppStore = create<AppState>()((set, get) => {
       await addAttendanceToDb(record);
     },
     hasSubmittedToday: (employeeId) => {
-      const today = new Date().toISOString().split('T')[0];
+      const today = getLocalTodayString();
       return get().attendanceRecords.some(
         (record) => record.employeeId === employeeId && record.timestamp.startsWith(today)
       );

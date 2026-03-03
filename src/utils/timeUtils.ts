@@ -45,10 +45,34 @@ export function checkTimeGate(): TimeGateResult {
 }
 
 /**
- * Get current timestamp in ISO format
+ * Get current timestamp in ISO format with local timezone offset
+ * This ensures the timestamp matches the user's local date/time
  */
 export function getTimestamp(): string {
-  return new Date().toISOString();
+  const now = new Date();
+  // Get timezone offset in minutes (WIB is +420 minutes)
+  const offset = now.getTimezoneOffset();
+  // Create a new date adjusted for local timezone
+  const localDate = new Date(now.getTime() - offset * 60 * 1000);
+  // Return ISO string without the 'Z' suffix to indicate local time
+  return localDate.toISOString().replace('Z', '');
+}
+
+/**
+ * Get local date string (YYYY-MM-DD) based on user's timezone
+ */
+export function getLocalDateString(date: Date = new Date()): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Get local today string for attendance check
+ */
+export function getLocalTodayString(): string {
+  return getLocalDateString(new Date());
 }
 
 /**
