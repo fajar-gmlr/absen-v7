@@ -1,6 +1,5 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { useAppStore } from '../store/useAppStore';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -8,13 +7,11 @@ interface LayoutProps {
 }
 
 export function Layout({ children, title }: LayoutProps) {
-  const { currentUserRole } = useAppStore();
-  
-  // Build nav items based on user role
+  // Build nav items - Managerial always visible (protected by PIN 7777)
   const navItems = [
     { path: '/absensi', label: 'Absensi' },
     { path: '/notifikasi', label: 'Notifikasi' },
-    ...(currentUserRole === 'manager' ? [{ path: '/managerial', label: 'Managerial' }] : []),
+    { path: '/managerial', label: 'Managerial' },
     { path: '/toolbox', label: 'Toolbox' },
     { path: '/notepad', label: 'Notepad' },
   ];
