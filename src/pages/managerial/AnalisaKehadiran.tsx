@@ -4,6 +4,7 @@ import type { Holiday, Employee, AttendanceRecord, HealthCondition } from '../..
 import { ConnectionStatusBar, useConnectionStatus } from './components/ConnectionStatusBar';
 import { DailyView } from './components/DailyView';
 import { MonthlyView } from './components/MonthlyView';
+import { DatabaseFixer } from './components/DatabaseFixer';
 
 // ============================================
 // TYPES & UTILS
@@ -134,7 +135,8 @@ export function AnalisaKehadiran() {
 
     return employees.map(emp => {
       const empRecords = monthlyRecordsMap.get(emp.id) || [];
-      const recordDates = new Map(empRecords.map(r => [r.timestamp.split('T')[0], r]));
+      // BUGFIX: Gunakan formatDateKey dari objek Date, bukan string split
+      const recordDates = new Map(empRecords.map(r => [formatDateKey(new Date(r.timestamp)), r]));
       
       const dailyStats: DailyStats[] = [];
       let ontime = 0, late = 0, absent = 0, bizDays = 0;
@@ -307,8 +309,9 @@ export function AnalisaKehadiran() {
         <DailyView
           dailyDate={dailyDate}
           onDailyDateChange={setDailyDate}
-          todayRecords={attendanceRecords.filter(r => r.timestamp.startsWith(dailyDate))}
-          employeesWhoDidNotSubmit={employees.filter(e => !attendanceRecords.some(r => r.employeeId === e.id && r.timestamp.startsWith(dailyDate)))}
+          // BUGFIX: Gunakan konversi new Date() untuk menghindari shift timezone
+          todayRecords={attendanceRecords.filter(r => formatDateKey(new Date(r.timestamp)) === dailyDate)}
+          employeesWhoDidNotSubmit={employees.filter(e => !attendanceRecords.some(r => r.employeeId === e.id && formatDateKey(new Date(r.timestamp)) === dailyDate))}
           employees={employees}
           expandedCard={expandedCard}
           onToggleCard={setExpandedCard}
@@ -340,9 +343,12 @@ export function AnalisaKehadiran() {
           onExportExcel={handleExportExcel}
         />
       )}
+
+      {/* COMPONENT FIXER DATABASE DITAMBAHKAN DI SINI */}
+      <DatabaseFixer />
+
     </div>
   );
 }
 
 export default AnalisaKehadiran;
-

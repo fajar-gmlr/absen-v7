@@ -9,6 +9,9 @@ export type TimeGateResult = {
   message: string;
 };
 
+// PERBAIKAN: Kita ekstrak tipenya agar TypeScript tidak bingung membaca parameter
+export type HolidayParam = string | { date: string; endDate?: string };
+
 export function checkTimeGate(): TimeGateResult {
   const now = new Date();
   const hours = now.getHours();
@@ -47,17 +50,24 @@ export function checkTimeGate(): TimeGateResult {
 /**
  * Get current timestamp in ISO format with correct local timezone offset
  * This ensures the timestamp matches the user's local date/time
- * Format: 2024-01-15T08:30:00+07:00
  */
 export function getTimestamp(): string {
   const now = new Date();
   const offset = now.getTimezoneOffset();
   const sign = offset > 0 ? '-' : '+';
   const absOffset = Math.abs(offset);
-  const hours = String(Math.floor(absOffset / 60)).padStart(2, '0');
-  const minutes = String(absOffset % 60).padStart(2, '0');
-  const isoString = now.toISOString().replace('Z', `${sign}${hours}:${minutes}`);
-  return isoString;
+  const offsetHours = String(Math.floor(absOffset / 60)).padStart(2, '0');
+  const offsetMinutes = String(absOffset % 60).padStart(2, '0');
+
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+  const milliseconds = String(now.getMilliseconds()).padStart(3, '0');
+
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}${sign}${offsetHours}:${offsetMinutes}`;
 }
 
 /**
@@ -113,9 +123,8 @@ export function isMCUExpired(mcuDate: string): boolean {
 
 /**
  * Expand multi-day holidays into individual date strings
- * Supports both single dates (string) and multi-day holidays (object with date and endDate)
  */
-export function expandHolidaysToDates(holidays: (string | { date: string; endDate?: string })[]): string[] {
+export function expandHolidaysToDates(holidays: HolidayParam[]): string[] {
   const expandedDates: string[] = [];
 
   for (const holiday of holidays) {
@@ -129,7 +138,12 @@ export function expandHolidaysToDates(holidays: (string | { date: string; endDat
       const current = new Date(start);
 
       while (current <= end) {
-        expandedDates.push(current.toISOString().split('T')[0]);
+        // Bugfix: Prevent UTC timezone shift
+        const yyyy = current.getFullYear();
+        const mm = String(current.getMonth() + 1).padStart(2, '0');
+        const dd = String(current.getDate()).padStart(2, '0');
+        expandedDates.push(`${yyyy}-${mm}-${dd}`);
+        
         current.setDate(current.getDate() + 1);
       }
     } else {
@@ -143,12 +157,11 @@ export function expandHolidaysToDates(holidays: (string | { date: string; endDat
 
 /**
  * Calculate business days between two dates (excluding weekends and holidays)
- * Now supports multi-day holidays
  */
 export function calculateBusinessDays(
   startDate: Date,
   endDate: Date,
-  holidays: (string | { date: string; endDate?: string })[] = []
+  holidays: HolidayParam[] = []
 ): number {
   // Expand multi-day holidays to individual dates
   const expandedHolidays = expandHolidaysToDates(holidays);
@@ -182,7 +195,7 @@ export function calculateAbsentDays(
   startDate: Date,
   endDate: Date,
   presentDates: Set<string>,
-  holidays: (string | { date: string; endDate?: string })[] = []
+  holidays: HolidayParam[] = []
 ): number {
   const expandedHolidays = expandHolidaysToDates(holidays);
 

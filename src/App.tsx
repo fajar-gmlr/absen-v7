@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 import { Absensi } from './pages/Absensi';
@@ -11,9 +12,30 @@ import { Notepad } from './pages/Notepad';
 import { Tutup } from './pages/Tutup';
 import { NotificationAlert } from './components/NotificationAlert';
 
+// IMPORT PENTING: Panggil inisialisasi Firebase dari store Anda
+import { initializeFirebaseSync } from './store/useAppStore';
+
 function App() {
+  
+  // EFEK PENTING: Hidupkan koneksi Firebase saat aplikasi pertama kali dibuka
+  useEffect(() => {
+    // Memulai sinkronisasi data dari Firebase (Karyawan, Absensi, Libur, dll)
+    const cleanupSync = initializeFirebaseSync();
+    
+    // Membersihkan listener jika komponen App di-unmount (mencegah memory leak)
+    return () => {
+      cleanupSync();
+    };
+  }, []); // Array dependency kosong memastikan ini hanya berjalan satu kali
+
   return (
-    <BrowserRouter>
+    // MENGHILANGKAN WARNING: Menambahkan properti future flag dari React Router v7
+    <BrowserRouter
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+      }}
+    >
       <NotificationAlert />
       <Routes>
         <Route path="/" element={<Absensi />} />

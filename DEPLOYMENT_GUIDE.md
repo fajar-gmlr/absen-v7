@@ -1,167 +1,33 @@
-# Deployment Guide for Absen V7
+# Deployment Guide for Absen V7 (CI/CD Pipeline)
 
-## Recommended Workflow: GitHub → Vercel (Auto Deploy)
+This document outlines the Continuous Integration and Continuous Deployment (CI/CD) workflow for the Absen V7 project. We use a **GitHub → Vercel** pipeline, meaning every code pushed to the `main` branch on GitHub will automatically become the live production site on Vercel.
 
-This is the **recommended** deployment method. Vercel automatically deploys when you push to GitHub.
+## ✅ 1. Pre-Flight Deployment Checklist
 
-### Setup (One Time)
-1. Connect GitHub repo to Vercel project at https://vercel.com/dashboard
-2. Select your repository: `fajar-gmlr/absen-v7`
-3. Vercel will auto-deploy on every push to `main` branch
+Before pushing any code to GitHub, **always** run through this checklist locally to guarantee a 100% successful live deployment:
 
-### Deploy Steps
-
-1. **Commit your changes**
-   
-```
-```bash
-    git push origin main
-```
-
-3. **Vercel auto-deploys**
-   - Build starts automatically (takes 1-2 minutes)
-   - Check status at: https://vercel.com/dashboard
-   - Production URL: https://fajar-gmlr-absen-v7.vercel.app/
+- [ ] **Test Locally:** Run `npm run dev` and test your new features. Ensure there are no errors in the browser console.
+- [ ] **Check Code Quality:** Run `npm run lint` to catch any syntax or hook warnings.
+- [ ] **Test Production Build:** Run `npm run build` locally. Vercel uses this exact command. **If it fails on your computer, it will fail on Vercel.**
+- [ ] **Check Routing Config:** Ensure `vercel.json` exists in your root folder and is not ignored by Git. (This prevents 404 errors when refreshing pages).
+- [ ] **Check Secrets:** Ensure your `.env` file is in `.gitignore` and is **NOT** staged for commit.
 
 ---
 
-## Environment Variables Setup
+## 🚀 2. Routine Deployment Steps
 
-### Local Development
-1. Copy `.env.example` to `.env`:
-   
-```
-bash
-   cp .env.example .env
-   
-```
+Once you have passed the checklist above, you are ready to deploy. 
 
-2. Fill in your actual Firebase credentials in `.env`:
-   
-```
-   VITE_FIREBASE_API_KEY=your_actual_api_key
-   VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-   VITE_FIREBASE_PROJECT_ID=your_project_id
-   VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
-   VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-   VITE_FIREBASE_APP_ID=your_app_id
-   VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
-   VITE_FIREBASE_DATABASE_URL=https://your_project.firebaseapp.com
-   
-```
+Because Vercel is linked to your GitHub repository, pushing your code to the `main` branch will automatically trigger a live production update.
 
-3. **IMPORTANT**: `.env` is in `.gitignore` and should NEVER be committed to GitHub
-
-### Vercel Production Environment Variables
-1. Go to https://vercel.com/dashboard
-2. Select your project → Settings → Environment Variables
-3. Add all `VITE_FIREBASE_*` variables from your `.env` file
-4. Redeploy if needed
-
----
-
-## Alternative: Local → Vercel CLI (Not Recommended)
-
-Only use this if GitHub auto-deploy is not working.
-
-### Prerequisites
-- Vercel CLI installed: `npm i -g vercel`
-- Logged in to Vercel: `vercel login`
-
-### Steps
-1. **Link to existing project**
-   If this is your very first time bypassing GitHub:
-```bash
-   npx vercel link
-```
-   - Select "Y" to set up
-   - Choose "Fajar Gumelar's projects"
-   - Select "absen-v7" (NOT absen-v7-main)
-
-2. **Deploy to production**
-   Run the following command in your terminal to force-push directly to Vercel production:
-```bash
-   npx vercel --prod --yes
-```
-
----
-
-## Common Issues
-
-### Issue: Build fails on Vercel
-**Check locally first:**
-```
-bash
-npm run build
-npx tsc --noEmit
-```
-**Common causes:**
-- TypeScript errors (missing types, incorrect imports)
-- Missing dependencies in package.json
-- Missing environment variables (VITE_FIREBASE_*)
-
-### Issue: Changes pushed but not deploying
-**Check:**
-- Did you push to `main` branch? Vercel only watches `main`
-- Check Vercel dashboard for build errors: https://vercel.com/dashboard
-- Verify GitHub connection in Vercel project settings
-
-### Issue: "Cannot find module" or TypeScript errors
-**Fix:**
-```
-bash
-rm -rf node_modules package-lock.json
-npm install
-npm run build
-```
-
-### Issue: Deployed to wrong project (absen-v7-main instead of absen-v7)
-**Fix:**
-- Always use GitHub workflow (push to main)
-- If using CLI, run `vercel link` and select "absen-v7" (not absen-v7-main)
-
-### Issue: Firebase connection fails in production
-**Fix:**
-- Verify all `VITE_FIREBASE_*` environment variables are set in Vercel
-- Check that `VITE_FIREBASE_DATABASE_URL` is correct
-- Ensure Firebase Realtime Database rules allow access
-
----
-
-## Deployment Checklist
-
-### Before Pushing to GitHub:
-- [ ] `npm run build` succeeds locally
-- [ ] No TypeScript errors (`npx tsc --noEmit`)
-- [ ] All changes committed (`git status` shows clean)
-- [ ] `.env` file is NOT staged (should be in `.gitignore`)
-- [ ] Tested locally (`npm run dev`)
-
-### After Vercel Deploys:
-- [ ] Check deployment status in Vercel dashboard
-- [ ] Test production URL: https://fajar-gmlr-absen-v7.vercel.app/
-- [ ] Verify Firebase connection working
-- [ ] Test key features (absensi, managerial, etc.)
-- [ ] Clear browser cache if needed (Ctrl+Shift+R)
-
----
-
-## Important URLs
-
-| Resource | URL |
-|----------|-----|
-| **Production Site** | https://fajar-gmlr-absen-v7.vercel.app/ |
-| **Vercel Dashboard** | https://vercel.com/dashboard |
-| **GitHub Repository** | https://github.com/fajar-gmlr/absen-v7 |
-
-## Quick Reference Commands
+Run these commands in your terminal:
 
 ```bash
-# Push to GitHub (triggers auto-deploy)
+# 1. Stage all your verified changes
 git add .
-git commit -m "Your message"
-git push origin main
 
-# Check status
-git status
-git log --oneline -3
+# 2. Commit with a descriptive message describing what you changed
+git commit -m "feat: your feature description"
+
+# 3. Push to GitHub (This triggers the Vercel Auto-Deploy)
+git push origin main
