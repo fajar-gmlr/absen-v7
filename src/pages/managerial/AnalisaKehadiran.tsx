@@ -26,26 +26,23 @@ interface MonthlyStats {
   dailyStats: DailyStats[];
 }
 
+// BUGFIX: Perbaikan logika On Time dan Late
 const getAttendanceStatus = (timestamp: string): 'ontime' | 'late' | 'invalid' => {
-  // Parse the timestamp and convert to WIB (UTC+7)
   const date = new Date(timestamp);
-  // Get hours in local time, then adjust for timezone offset to get WIB
-  // Since getTimestamp() stores in UTC+7 format, we need to parse it correctly
-  const wibTime = date.getHours() + (date.getTimezoneOffset() <= -420 ? 0 : 7); // Simplified for UTC+7
-  const time = wibTime + date.getMinutes() / 60;
-  if (time >= 5 && time <= 10) return 'ontime';
-  if (time > 10 && time <= 17) return 'late';
-  return 'invalid';
+  // Ubah ke format total menit agar perhitungan presisi tanpa pusing timezone tambahan
+  const totalMinutes = date.getHours() * 60 + date.getMinutes();
+
+  if (totalMinutes < 5 * 60) return 'invalid'; // Sebelum jam 05:00
+  if (totalMinutes < 10 * 60) return 'ontime'; // Antara 05:00 sampai 09:59
+  return 'late'; // Jam 10:00 ke atas pasti Late (termasuk jam 22:00)
 };
 
-// Helper to get current time in WIB (UTC+7)
+// Helper to get current time strictly in WIB (UTC+7) avoiding device timezone issues
 const getCurrentTimeWIB = (): number => {
   const now = new Date();
-  // Get current hour in local time, then add 7 to get WIB
-  // For Indonesia (UTC+7), we adjust accordingly
-  let wibHour = now.getHours() + 7;
+  let wibHour = now.getUTCHours() + 7;
   if (wibHour >= 24) wibHour -= 24;
-  return wibHour + now.getMinutes() / 60;
+  return wibHour + now.getUTCMinutes() / 60;
 };
 
 // Check if current time is past 17:00 WIB
@@ -79,7 +76,7 @@ export function AnalisaKehadiran() {
   const [dailyDate, setDailyDate] = useState<string>(formatDateKey(new Date()));
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
 
-  // Holiday Manager States (Koneksi ke MonthlyView)
+  // Holiday Manager States
   const [showHolidayForm, setShowHolidayForm] = useState(false);
   const [holidayDate, setHolidayDate] = useState('');
   const [holidayEndDate, setHolidayEndDate] = useState('');
@@ -93,7 +90,7 @@ export function AnalisaKehadiran() {
   // ANALYTICS ENGINE (useMemo Optimized)
   // ============================================
 
-  // 1. Expand Holiday Dates (O(1) Lookup)
+  // 1. Expand Holiday Dates
   const expandedHolidayDates = useMemo(() => {
     const dates = new Set<string>();
     holidays.forEach(h => {
@@ -108,7 +105,7 @@ export function AnalisaKehadiran() {
     return dates;
   }, [holidays]);
 
-  // 2. Map Records by Employee (O(n))
+  // 2. Map Records by Employee
   const monthlyRecordsMap = useMemo(() => {
     const map = new Map<string, AttendanceRecord[]>();
     attendanceRecords.forEach(r => {
@@ -122,21 +119,50 @@ export function AnalisaKehadiran() {
     return map;
   }, [attendanceRecords, selectedMonth, selectedYear]);
 
+  // BUGFIX: DEDUPLIKASI HARIAN (Mencegah nama muncul dua kali)
+  const uniqueTodayRecords = useMemo(() => {
+    const recordsForDate = attendanceRecords.filter(r => formatDateKey(new Date(r.timestamp)) === dailyDate);
+    
+    // Sort dari yang paling pagi ke paling malam
+    const sorted = [...recordsForDate].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+    // Masukkan ke Map untuk memastikan 1 ID hanya punya 1 data absen (diambil yang paling pagi)
+    const unique = new Map<string, AttendanceRecord>();
+    for (const record of sorted) {
+      if (!unique.has(record.employeeId)) {
+        unique.set(record.employeeId, record);
+      }
+    }
+    return Array.from(unique.values());
+  }, [attendanceRecords, dailyDate]);
+
+  // Siapa yang belum absen hari ini
+  const employeesWhoDidNotSubmitToday = useMemo(() => {
+    return employees.filter(e => !uniqueTodayRecords.some(r => r.employeeId === e.id));
+  }, [employees, uniqueTodayRecords]);
+
+
   // 3. Core Matrix Calculation
   const monthlyStats = useMemo((): MonthlyStats[] => {
     const lastDayOfMonth = new Date(selectedYear, selectedMonth + 1, 0);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    // Get today's date key for comparison
     const todayKey = formatDateKey(today);
-    // Check if it's past 17:00 WIB today
     const past17WIBToday = isPast17WIB();
 
     return employees.map(emp => {
       const empRecords = monthlyRecordsMap.get(emp.id) || [];
-      // BUGFIX: Gunakan formatDateKey dari objek Date, bukan string split
-      const recordDates = new Map(empRecords.map(r => [formatDateKey(new Date(r.timestamp)), r]));
+      
+      // BUGFIX: Deduplikasi bulanan (Jika 1 hari absen 2x, simpan status yang paling pagi)
+      const sortedEmpRecords = [...empRecords].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+      const recordDates = new Map<string, AttendanceRecord>();
+      sortedEmpRecords.forEach(r => {
+        const dateKey = formatDateKey(new Date(r.timestamp));
+        if (!recordDates.has(dateKey)) {
+          recordDates.set(dateKey, r);
+        }
+      });
       
       const dailyStats: DailyStats[] = [];
       let ontime = 0, late = 0, absent = 0, bizDays = 0;
@@ -157,29 +183,22 @@ export function AnalisaKehadiran() {
           bizDays++;
           const record = recordDates.get(dKey);
           if (record) {
-            // Parse timestamp and get hour in local time (which should be UTC+7)
             const recordTime = new Date(record.timestamp);
-            // Get hours in local time (assuming stored as UTC+7)
             const recordHour = recordTime.getHours();
             if (recordHour >= 17) {
-              // Submitted after 5 PM - mark as absent
               status = 'absent';
               absent++;
             } else {
-              // Submitted before 5 PM - check if ontime or late
               status = getAttendanceStatus(record.timestamp) === 'late' ? 'late' : 'ontime';
               if (status === 'late') late++; else ontime++;
             }
           } else if (isPast) {
-            // Past days without submission = absent
             status = 'absent';
             absent++;
           } else if (isToday && past17WIBToday) {
-            // Today is past 17:00 WIB and no submission = absent
             status = 'absent';
             absent++;
           }
-          // Future days or today (before 17:00) without submission will show as 'working' (blue/idle)
         }
         dailyStats.push({ date: dKey, status });
       }
@@ -225,7 +244,6 @@ export function AnalisaKehadiran() {
     }
   };
 
-  // Excel Export with proper formatting
   const handleExportExcel = useCallback(() => {
     const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
     const currentMonth = monthNames[selectedMonth];
@@ -309,9 +327,8 @@ export function AnalisaKehadiran() {
         <DailyView
           dailyDate={dailyDate}
           onDailyDateChange={setDailyDate}
-          // BUGFIX: Gunakan konversi new Date() untuk menghindari shift timezone
-          todayRecords={attendanceRecords.filter(r => formatDateKey(new Date(r.timestamp)) === dailyDate)}
-          employeesWhoDidNotSubmit={employees.filter(e => !attendanceRecords.some(r => r.employeeId === e.id && formatDateKey(new Date(r.timestamp)) === dailyDate))}
+          todayRecords={uniqueTodayRecords}
+          employeesWhoDidNotSubmit={employeesWhoDidNotSubmitToday}
           employees={employees}
           expandedCard={expandedCard}
           onToggleCard={setExpandedCard}
@@ -327,7 +344,6 @@ export function AnalisaKehadiran() {
           monthlyStats={monthlyStats}
           employees={employees}
           holidays={holidays}
-          // Passing Holiday States
           showHolidayForm={showHolidayForm}
           isMultiDay={isMultiDay}
           holidayDate={holidayDate}
@@ -344,7 +360,7 @@ export function AnalisaKehadiran() {
         />
       )}
 
-      {/* COMPONENT FIXER DATABASE DITAMBAHKAN DI SINI */}
+      {/* Database Fixer Tools */}
       <DatabaseFixer />
 
     </div>
