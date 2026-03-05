@@ -4,7 +4,6 @@ import type { Holiday, Employee, AttendanceRecord, HealthCondition } from '../..
 import { ConnectionStatusBar, useConnectionStatus } from './components/ConnectionStatusBar';
 import { DailyView } from './components/DailyView';
 import { MonthlyView } from './components/MonthlyView';
-import { DatabaseFixer } from './components/DatabaseFixer';
 
 // ============================================
 // TYPES & UTILS
@@ -26,18 +25,15 @@ interface MonthlyStats {
   dailyStats: DailyStats[];
 }
 
-// BUGFIX: Perbaikan logika On Time dan Late
 const getAttendanceStatus = (timestamp: string): 'ontime' | 'late' | 'invalid' => {
   const date = new Date(timestamp);
-  // Ubah ke format total menit agar perhitungan presisi tanpa pusing timezone tambahan
   const totalMinutes = date.getHours() * 60 + date.getMinutes();
 
-  if (totalMinutes < 5 * 60) return 'invalid'; // Sebelum jam 05:00
-  if (totalMinutes < 10 * 60) return 'ontime'; // Antara 05:00 sampai 09:59
-  return 'late'; // Jam 10:00 ke atas pasti Late (termasuk jam 22:00)
+  if (totalMinutes < 5 * 60) return 'invalid'; 
+  if (totalMinutes < 10 * 60) return 'ontime'; 
+  return 'late'; 
 };
 
-// Helper to get current time strictly in WIB (UTC+7) avoiding device timezone issues
 const getCurrentTimeWIB = (): number => {
   const now = new Date();
   let wibHour = now.getUTCHours() + 7;
@@ -45,7 +41,6 @@ const getCurrentTimeWIB = (): number => {
   return wibHour + now.getUTCMinutes() / 60;
 };
 
-// Check if current time is past 17:00 WIB
 const isPast17WIB = (): boolean => {
   const currentTimeWIB = getCurrentTimeWIB();
   return currentTimeWIB >= 17;
@@ -87,10 +82,9 @@ export function AnalisaKehadiran() {
   const { isConnected, lastSyncTime, isRefreshing, handleRefresh } = useConnectionStatus();
 
   // ============================================
-  // ANALYTICS ENGINE (useMemo Optimized)
+  // ANALYTICS ENGINE
   // ============================================
 
-  // 1. Expand Holiday Dates
   const expandedHolidayDates = useMemo(() => {
     const dates = new Set<string>();
     holidays.forEach(h => {
@@ -105,7 +99,6 @@ export function AnalisaKehadiran() {
     return dates;
   }, [holidays]);
 
-  // 2. Map Records by Employee
   const monthlyRecordsMap = useMemo(() => {
     const map = new Map<string, AttendanceRecord[]>();
     attendanceRecords.forEach(r => {
@@ -119,14 +112,11 @@ export function AnalisaKehadiran() {
     return map;
   }, [attendanceRecords, selectedMonth, selectedYear]);
 
-  // BUGFIX: DEDUPLIKASI HARIAN (Mencegah nama muncul dua kali)
+  // DEDUPLIKASI HARIAN
   const uniqueTodayRecords = useMemo(() => {
     const recordsForDate = attendanceRecords.filter(r => formatDateKey(new Date(r.timestamp)) === dailyDate);
-    
-    // Sort dari yang paling pagi ke paling malam
     const sorted = [...recordsForDate].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
-    // Masukkan ke Map untuk memastikan 1 ID hanya punya 1 data absen (diambil yang paling pagi)
     const unique = new Map<string, AttendanceRecord>();
     for (const record of sorted) {
       if (!unique.has(record.employeeId)) {
@@ -136,13 +126,11 @@ export function AnalisaKehadiran() {
     return Array.from(unique.values());
   }, [attendanceRecords, dailyDate]);
 
-  // Siapa yang belum absen hari ini
   const employeesWhoDidNotSubmitToday = useMemo(() => {
     return employees.filter(e => !uniqueTodayRecords.some(r => r.employeeId === e.id));
   }, [employees, uniqueTodayRecords]);
 
 
-  // 3. Core Matrix Calculation
   const monthlyStats = useMemo((): MonthlyStats[] => {
     const lastDayOfMonth = new Date(selectedYear, selectedMonth + 1, 0);
     const today = new Date();
@@ -154,7 +142,6 @@ export function AnalisaKehadiran() {
     return employees.map(emp => {
       const empRecords = monthlyRecordsMap.get(emp.id) || [];
       
-      // BUGFIX: Deduplikasi bulanan (Jika 1 hari absen 2x, simpan status yang paling pagi)
       const sortedEmpRecords = [...empRecords].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
       const recordDates = new Map<string, AttendanceRecord>();
       sortedEmpRecords.forEach(r => {
@@ -359,9 +346,6 @@ export function AnalisaKehadiran() {
           onExportExcel={handleExportExcel}
         />
       )}
-
-      {/* Database Fixer Tools */}
-      <DatabaseFixer />
 
     </div>
   );
