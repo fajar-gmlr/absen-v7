@@ -6,7 +6,7 @@ export const BottomNav: React.FC = () => {
   const location = useLocation();
   const [activeIndex, setActiveIndex] = useState(0);
 
-  // Daftar menu sesuai urutan yang direquest, menggunakan UserCog untuk Managerial
+  // Daftar menu sesuai urutan yang direquest
   const navItems = [
     { path: '/absensi', icon: UserCheck, label: 'Absensi' },
     { path: '/notifikasi', icon: Bell, label: 'Notifikasi' },
@@ -31,8 +31,11 @@ export const BottomNav: React.FC = () => {
         <div 
           className="absolute top-[-22px] w-14 h-14 rounded-full border-[6px] border-[#0a0a0a] bg-gradient-to-tr from-teal-600 to-teal-400 shadow-[0_0_15px_rgba(20,184,166,0.5)] transition-all duration-300 ease-in-out flex items-center justify-center z-10"
           style={{ 
-            left: `calc(${(activeIndex * 20) + 10}% + ${(activeIndex * 0.5)}rem)`, 
-            transform: 'translateX(-50%)' // Penyesuaian presisi posisi
+            // PERBAIKAN: Rumus persentase murni tanpa tambahan 'rem'.
+            // 5 item flex-1 = masing-masing mengambil 20% ruang.
+            // Center dari masing-masing item adalah 10%, 30%, 50%, 70%, 90%.
+            left: `${(activeIndex * 20) + 10}%`, 
+            transform: 'translateX(-50%)' 
           }}
         >
           {/* Ikon di dalam lingkaran aktif */}

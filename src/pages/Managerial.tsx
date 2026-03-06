@@ -81,9 +81,10 @@ export function Managerial() {
   // Managerial Content with Tabs
   return (
     <Layout title="Managerial">
-      <div className="p-4">
+      {/* Tambahkan pb-28 disini agar tidak tertutup bottom navbar */}
+      <div className="p-4 pb-28"> 
         {/* Sub-navigation for Managerial sections */}
-        <div className="flex gap-2 mb-4 overflow-x-auto pb-2 justify-center">
+        <div className="flex gap-2 mb-4 overflow-x-auto pb-2 justify-start sm:justify-center hide-scrollbar">
           <NavLink
             to="/managerial/karyawan"
             className={({ isActive }) =>
@@ -123,7 +124,7 @@ export function Managerial() {
         </div>
 
         {/* Exit Button */}
-        <div className="btn-wrapper w-full mb-4">
+        <div className="btn-wrapper w-full mb-6">
           <button onClick={handleExit} className="btn w-full py-3">
             <span className="btn-letter">🚪</span>
             <span className="btn-letter ml-1">K</span>
@@ -132,20 +133,6 @@ export function Managerial() {
             <span className="btn-letter">u</span>
             <span className="btn-letter">a</span>
             <span className="btn-letter">r</span>
-            <span className="btn-letter ml-1">d</span>
-            <span className="btn-letter">a</span>
-            <span className="btn-letter">r</span>
-            <span className="btn-letter">i</span>
-            <span className="btn-letter ml-1">M</span>
-            <span className="btn-letter">a</span>
-            <span className="btn-letter">n</span>
-            <span className="btn-letter">a</span>
-            <span className="btn-letter">g</span>
-            <span className="btn-letter">e</span>
-            <span className="btn-letter">r</span>
-            <span className="btn-letter">i</span>
-            <span className="btn-letter">a</span>
-            <span className="btn-letter">l</span>
           </button>
         </div>
 

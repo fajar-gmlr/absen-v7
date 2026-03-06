@@ -261,21 +261,21 @@ export function AnalisaKehadiran() {
   // RENDER
   // ============================================
   return (
-    <div className="min-h-screen bg-black text-white p-4 space-y-6">
+    <div className="min-h-screen bg-black text-white p-4 space-y-4 sm:space-y-6">
       
-      {/* Header Section */}
-      <div className="flex justify-between items-end border-b border-white/5 pb-6">
-        <div>
-          <h1 className="text-5xl font-black tracking-tighter italic uppercase text-white">
+      {/* Header Section (Responsive Fix) */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 border-b border-white/5 pb-4 sm:pb-6">
+        <div className="w-full sm:w-auto">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter italic uppercase text-white break-words">
             Analisa Kehadiran
           </h1>
-          <p className="text-sm font-bold tracking-[0.4em] text-cyan-500 uppercase mt-2">
+          <p className="text-xs sm:text-sm font-bold tracking-[0.2em] sm:tracking-[0.4em] text-cyan-500 uppercase mt-2">
             Data Matrix v2.0
           </p>
         </div>
-        <div className="bg-white/5 p-5 rounded-2xl border border-white/10 text-right">
-          <p className="text-xs text-white/40 uppercase font-bold tracking-widest">Avg. Attendance</p>
-          <p className="text-3xl font-black text-white mt-1">
+        <div className="w-full sm:w-auto bg-white/5 p-4 sm:p-5 rounded-2xl border border-white/10 flex flex-row sm:flex-col justify-between items-center sm:items-end">
+          <p className="text-[10px] sm:text-xs text-white/40 uppercase font-bold tracking-widest">Avg. Attendance</p>
+          <p className="text-2xl sm:text-3xl font-black text-white mt-0 sm:mt-1">
             {monthlyStats.length > 0 
               ? Math.round(monthlyStats.reduce((a, b) => a + b.attendanceRate, 0) / monthlyStats.length) 
               : 0}%
@@ -283,13 +283,13 @@ export function AnalisaKehadiran() {
         </div>
       </div>
 
-      {/* Tab Switcher */}
-      <div className="flex bg-white/5 p-2 rounded-2xl border border-white/5">
+      {/* Tab Switcher (Responsive Fix) */}
+      <div className="flex bg-white/5 p-1 sm:p-2 rounded-xl sm:rounded-2xl border border-white/5">
         {(['harian', 'bulanan'] as TabType[]).map(tab => (
           <button
             key={tab}
             onClick={() => handleTabChange(tab)}
-            className={`flex-1 py-4 text-sm font-black tracking-widest rounded-xl transition-all ${
+            className={`flex-1 py-3 sm:py-4 text-xs sm:text-sm font-black tracking-widest rounded-lg sm:rounded-xl transition-all ${
               activeTab === tab ? 'bg-white text-black' : 'text-white/40 hover:text-white'
             }`}
           >

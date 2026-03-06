@@ -1,5 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, onValue, set, push, remove, update } from 'firebase/database';
+// 1. IMPORT FITUR AUTHENTICATION
+import { getAuth, signInAnonymously } from 'firebase/auth';
 
 import type { 
   Employee, 
@@ -9,7 +11,6 @@ import type {
   Holiday 
 } from '../types';
 
-// Firebase configuration from environment variables
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -21,17 +22,22 @@ const firebaseConfig = {
   databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL
 };
 
-// Validate configuration
 if (!firebaseConfig.apiKey) {
   console.error('[Firebase] ERROR: VITE_FIREBASE_API_KEY is not set. Please check your .env file.');
 }
 
-// Initialize Firebase
 console.log('[Firebase] Initializing with database URL:', firebaseConfig.databaseURL);
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
-// Monitor connection state
+// 2. INISIALISASI AUTH
+const auth = getAuth(app);
+
+// 3. LOGIN ANONIM OTOMATIS (Mencegah Bot / Akses Ilegal)
+signInAnonymously(auth)
+  .then(() => console.log('[Firebase] Authenticated securely (Anonymous)'))
+  .catch((error) => console.error('[Firebase] Auth error:', error));
+
 const connectedRef = ref(database, '.info/connected');
 onValue(connectedRef, (snap) => {
   if (snap.val() === true) {
@@ -41,7 +47,6 @@ onValue(connectedRef, (snap) => {
   }
 });
 
-// Database references
 const dbRef = {
   employees: ref(database, 'employees'),
   attendance: ref(database, 'attendance'),
@@ -50,17 +55,11 @@ const dbRef = {
   holidays: ref(database, 'holidays'),
 };
 
-// Employee operations
 export const syncEmployees = (callback: (employees: Employee[]) => void) => {
-  console.log('[Firebase] Starting employees sync...');
   return onValue(dbRef.employees, (snapshot) => {
     const data = snapshot.val();
-    console.log('[Firebase] Employees data received:', data ? Object.keys(data).length : 0, 'employees');
     if (data) {
-      const employees = Object.entries(data).map(([id, emp]: [string, any]) => ({
-        ...emp,
-        id
-      }));
+      const employees = Object.entries(data).map(([id, emp]: [string, any]) => ({ ...emp, id }));
       callback(employees);
     } else {
       callback([]);
@@ -71,16 +70,9 @@ export const syncEmployees = (callback: (employees: Employee[]) => void) => {
 };
 
 export const addEmployeeToDb = async (employee: Employee) => {
-  try {
-    console.log('[Firebase] Adding employee:', employee);
-    const newRef = push(dbRef.employees);
-    await set(newRef, employee);
-    console.log('[Firebase] Employee added successfully:', newRef.key);
-    return newRef.key;
-  } catch (error) {
-    console.error('[Firebase] Error adding employee:', error);
-    throw error;
-  }
+  const newRef = push(dbRef.employees);
+  await set(newRef, employee);
+  return newRef.key;
 };
 
 export const updateEmployeeInDb = async (id: string, employee: Partial<Employee>) => {
@@ -93,15 +85,11 @@ export const deleteEmployeeFromDb = async (id: string) => {
   await remove(empRef);
 };
 
-// Attendance operations
 export const syncAttendance = (callback: (records: AttendanceRecord[]) => void) => {
   return onValue(dbRef.attendance, (snapshot) => {
     const data = snapshot.val();
     if (data) {
-      const records = Object.entries(data).map(([id, record]: [string, any]) => ({
-        ...record,
-        id
-      }));
+      const records = Object.entries(data).map(([id, record]: [string, any]) => ({ ...record, id }));
       callback(records);
     } else {
       callback([]);
@@ -115,15 +103,11 @@ export const addAttendanceToDb = async (record: AttendanceRecord) => {
   return newRef.key;
 };
 
-// Notification operations
 export const syncNotifications = (callback: (notifications: Notification[]) => void) => {
   return onValue(dbRef.notifications, (snapshot) => {
     const data = snapshot.val();
     if (data) {
-      const notifications = Object.entries(data).map(([id, notif]: [string, any]) => ({
-        ...notif,
-        id
-      }));
+      const notifications = Object.entries(data).map(([id, notif]: [string, any]) => ({ ...notif, id }));
       callback(notifications);
     } else {
       callback([]);
@@ -147,15 +131,11 @@ export const deleteNotificationFromDb = async (id: string) => {
   await remove(notifRef);
 };
 
-// Note operations
 export const syncNotes = (callback: (notes: Note[]) => void) => {
   return onValue(dbRef.notes, (snapshot) => {
     const data = snapshot.val();
     if (data) {
-      const notes = Object.entries(data).map(([id, note]: [string, any]) => ({
-        ...note,
-        id
-      }));
+      const notes = Object.entries(data).map(([id, note]: [string, any]) => ({ ...note, id }));
       callback(notes);
     } else {
       callback([]);
@@ -179,15 +159,11 @@ export const deleteNoteFromDb = async (id: string) => {
   await remove(noteRef);
 };
 
-// Holiday operations
 export const syncHolidays = (callback: (holidays: Holiday[]) => void) => {
   return onValue(dbRef.holidays, (snapshot) => {
     const data = snapshot.val();
     if (data) {
-      const holidays = Object.entries(data).map(([id, holiday]: [string, any]) => ({
-        ...holiday,
-        id
-      }));
+      const holidays = Object.entries(data).map(([id, holiday]: [string, any]) => ({ ...holiday, id }));
       callback(holidays);
     } else {
       callback([]);
@@ -196,16 +172,9 @@ export const syncHolidays = (callback: (holidays: Holiday[]) => void) => {
 };
 
 export const addHolidayToDb = async (holiday: Holiday) => {
-  try {
-    console.log('[Firebase] Adding holiday:', JSON.stringify(holiday));
-    const newRef = push(dbRef.holidays);
-    await set(newRef, holiday);
-    console.log('[Firebase] Holiday added successfully:', newRef.key);
-    return newRef.key;
-  } catch (error) {
-    console.error('[Firebase] Error adding holiday:', error);
-    throw error;
-  }
+  const newRef = push(dbRef.holidays);
+  await set(newRef, holiday);
+  return newRef.key;
 };
 
 export const deleteHolidayFromDb = async (id: string) => {
