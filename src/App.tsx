@@ -12,24 +12,21 @@ import { Notepad } from './pages/Notepad';
 import { Tutup } from './pages/Tutup';
 import { NotificationAlert } from './components/NotificationAlert';
 
-// IMPORT PENTING: Panggil inisialisasi Firebase dari store Anda
+// IMPORT Komponen Baru
+import { BottomNav } from './components/BottomNav';
+
 import { initializeFirebaseSync } from './store/useAppStore';
 
 function App() {
   
-  // EFEK PENTING: Hidupkan koneksi Firebase saat aplikasi pertama kali dibuka
   useEffect(() => {
-    // Memulai sinkronisasi data dari Firebase (Karyawan, Absensi, Libur, dll)
     const cleanupSync = initializeFirebaseSync();
-    
-    // Membersihkan listener jika komponen App di-unmount (mencegah memory leak)
     return () => {
       cleanupSync();
     };
-  }, []); // Array dependency kosong memastikan ini hanya berjalan satu kali
+  }, []); 
 
   return (
-    // MENGHILANGKAN WARNING: Menambahkan properti future flag dari React Router v7
     <BrowserRouter
       future={{
         v7_startTransition: true,
@@ -37,21 +34,29 @@ function App() {
       }}
     >
       <NotificationAlert />
-      <Routes>
-        <Route path="/" element={<Absensi />} />
-        <Route path="/absensi" element={<Absensi />} />
-        <Route path="/notifikasi" element={<Notifikasi />} />
-        <Route path="/managerial" element={<Managerial />}>
-          <Route index element={<Navigate to="karyawan" replace />} />
-          <Route path="karyawan" element={<ManajemenKaryawan />} />
-          <Route path="kehadiran" element={<AnalisaKehadiran />} />
-          <Route path="pergerakan" element={<Pergerakan />} />
-        </Route>
+      
+      {/* Wrapper untuk memberi ruang di bawah agar konten tidak tertutup bottom bar */}
+      <div className="pb-24 min-h-screen">
+        <Routes>
+          <Route path="/" element={<Absensi />} />
+          <Route path="/absensi" element={<Absensi />} />
+          <Route path="/notifikasi" element={<Notifikasi />} />
+          <Route path="/managerial" element={<Managerial />}>
+            <Route index element={<Navigate to="karyawan" replace />} />
+            <Route path="karyawan" element={<ManajemenKaryawan />} />
+            <Route path="kehadiran" element={<AnalisaKehadiran />} />
+            <Route path="pergerakan" element={<Pergerakan />} />
+          </Route>
 
-        <Route path="/toolbox" element={<Toolbox />} />
-        <Route path="/notepad" element={<Notepad />} />
-        <Route path="/tutup" element={<Tutup />} />
-      </Routes>
+          <Route path="/toolbox" element={<Toolbox />} />
+          <Route path="/notepad" element={<Notepad />} />
+          <Route path="/tutup" element={<Tutup />} />
+        </Routes>
+      </div>
+
+      {/* Panggil BottomNav di luar Routes agar persisten */}
+      <BottomNav />
+      
     </BrowserRouter>
   );
 }
