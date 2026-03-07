@@ -6,16 +6,18 @@ import { UnitConverter } from './tools/UnitConverter';
 import { LinearInterpolation } from './tools/LinearInterpolation';
 import { WaterdrawCalculator } from './tools/WaterdrawCalculator';
 import { APICalculator } from './tools/APICalculator';
+import { RTDCalculator } from './tools/RTDCalculator'; // <-- Import komponen RTD baru
 import type { ToolType, ToolDefinition } from './types';
 
 export { ToolType, ToolDefinition };
 
 const tools: ToolDefinition[] = [
   { id: 'calculator', name: 'Calculator', icon: '🧮' },
-  { id: 'converter', name: 'Unit Converter', icon: '📐' },
+  { id: 'converter', name: 'Unit Converter', icon: '🔄' },
   { id: 'interpolation', name: 'Linear Interpolation', icon: '📈' },
   { id: 'waterdraw', name: 'Waterdraw', icon: '💧' },
-  { id: 'api1952', name: 'API 1952', icon: '⚗️' },
+  { id: 'api1952', name: 'API (CTL & CPL)', icon: '🛢️' },
+  { id: 'rtd', name: 'RTD PT-100', icon: '🌡️' }, // <-- Tambahkan kartu RTD PT-100 di sini
 ];
 
 export function Toolbox() {
@@ -33,6 +35,8 @@ export function Toolbox() {
         return <WaterdrawCalculator />;
       case 'api1952':
         return <APICalculator />;
+      case 'rtd':
+        return <RTDCalculator />; // <-- Tambahkan routing ke komponen RTD
       default:
         return <GeneralCalculator />;
     }
