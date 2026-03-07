@@ -3,7 +3,8 @@ import type { Holiday, Employee } from '../../../types';
 
 interface DailyStats {
   date: string;
-  status: 'ontime' | 'late' | 'absent' | 'weekend' | 'holiday' | 'working';
+  // Menambahkan 'symptom' agar sinkron dengan AnalisaKehadiran.tsx
+  status: 'ontime' | 'late' | 'absent' | 'weekend' | 'holiday' | 'working' | 'sick' | 'symptom';
 }
 
 interface MonthlyStats {
@@ -11,6 +12,8 @@ interface MonthlyStats {
   ontimeCount: number;
   lateCount: number;
   absentCount: number;
+  sickCount: number;
+  symptomCount: number; // Menambahkan symptomCount
   totalBusinessDays: number;
   attendanceRate: number;
   dailyStats: DailyStats[];
@@ -36,7 +39,7 @@ interface MonthlyViewProps {
   onHolidayNameChange: (name: string) => void;
   onAddHoliday: (e: React.FormEvent) => void;
   onDeleteHoliday: (id: string) => void;
-  onExportExcel: () => void;
+  onExportExcel: () => void; // Menggunakan onExportExcel kembali
 }
 
 const MONTHS = ['JANUARI', 'FEBRUARI', 'MARET', 'APRIL', 'MEI', 'JUNI', 'JULI', 'AGUSTUS', 'SEPTEMBER', 'OKTOBER', 'NOVEMBER', 'DESEMBER'];
@@ -79,7 +82,6 @@ export const MonthlyView = memo(function MonthlyView({
           </button>
           
           <div className="flex flex-col items-center">
-            {/* Responsif Font Size dan Jarak */}
             <div className="flex items-baseline gap-2 sm:gap-4">
               <span className="hidden md:inline text-xs sm:text-sm font-bold tracking-[0.3em] text-white/20 uppercase">{MONTHS[prevMonth].slice(0,3)}</span>
               <span className="text-xl sm:text-3xl font-black tracking-tight text-white px-2 sm:px-8 md:border-x border-white/10 text-center min-w-[150px] sm:min-w-[280px]">
@@ -157,10 +159,12 @@ export const MonthlyView = memo(function MonthlyView({
                         }`}>
                           {stat.attendanceRate}%
                         </span>
-                        <div className="flex gap-2 sm:gap-3 text-[10px] sm:text-xs text-white/50">
-                          <span className="flex items-center gap-1 whitespace-nowrap"><span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500"></span> {stat.ontimeCount} On Time</span>
-                          <span className="flex items-center gap-1 whitespace-nowrap"><span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-purple-500"></span> {stat.lateCount} Late</span>
-                          <span className="flex items-center gap-1 whitespace-nowrap"><span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-red-500"></span> {stat.absentCount} Absent</span>
+                        <div className="flex gap-2 sm:gap-3 text-[10px] sm:text-xs text-white/50 flex-wrap justify-center">
+                          <span className="flex items-center gap-1 whitespace-nowrap"><span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500"></span> {stat.ontimeCount}</span>
+                          <span className="flex items-center gap-1 whitespace-nowrap"><span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-purple-500"></span> {stat.lateCount}</span>
+                          <span className="flex items-center gap-1 whitespace-nowrap"><span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-orange-500"></span> {stat.symptomCount}</span>
+                          <span className="flex items-center gap-1 whitespace-nowrap"><span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-blue-500"></span> {stat.sickCount}</span>
+                          <span className="flex items-center gap-1 whitespace-nowrap"><span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-red-500"></span> {stat.absentCount}</span>
                         </div>
                       </div>
                     </td>
@@ -174,6 +178,8 @@ export const MonthlyView = memo(function MonthlyView({
                               day.status === 'ontime' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' :
                               day.status === 'late' ? 'bg-purple-600 shadow-[0_0_10px_rgba(147,51,234,0.7)]' :
                               day.status === 'absent' ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]' :
+                              day.status === 'symptom' ? 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]' :
+                              day.status === 'sick' ? 'bg-blue-600 shadow-[0_0_8px_rgba(37,99,235,0.6)]' :
                               day.status === 'holiday' ? 'bg-white/30' :
                               day.status === 'working' ? 'bg-blue-500/30' :
                               'bg-white/5'
