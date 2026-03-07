@@ -42,23 +42,31 @@ export function WaterdrawCalculator() {
     if (idInMm <= 0) return null;
 
     let sphereDiameterMm = 0;
+    let sphereCircumferenceMm = 0;
     let enlargementPercent = 0;
 
     if (inputType === 'percent') {
+      // Input adalah persentase (misal: 103%)
       enlargementPercent = measureNum;
       sphereDiameterMm = idInMm * (measureNum / 100);
+      sphereCircumferenceMm = sphereDiameterMm * Math.PI; // Keliling = D * Pi
     } else {
-      sphereDiameterMm = measureNum / Math.PI;
+      // Input adalah keliling bola (mm)
+      sphereCircumferenceMm = measureNum;
+      sphereDiameterMm = measureNum / Math.PI; // Diameter = Keliling / Pi
       enlargementPercent = (sphereDiameterMm / idInMm) * 100;
     }
 
     const sphereDiameterInch = sphereDiameterMm / 25.4;
+    const sphereCircumferenceInch = sphereCircumferenceMm / 25.4;
 
     return {
       idMm: idInMm.toFixed(4),
       idInch: idInInch.toFixed(4),
       diameterMm: sphereDiameterMm.toFixed(4),
       diameterInch: sphereDiameterInch.toFixed(4),
+      circumferenceMm: sphereCircumferenceMm.toFixed(4),
+      circumferenceInch: sphereCircumferenceInch.toFixed(4),
       percent: enlargementPercent.toFixed(2),
     };
   };
@@ -153,7 +161,7 @@ export function WaterdrawCalculator() {
         <span className="text-4xl">⚙️</span>
         <div>
           <h4 className="text-lg font-medium text-gray-100">Displacer Calculator</h4>
-          <p className="text-sm text-gray-400 mt-1">Hitung diameter bola (displacer) berdasarkan ukuran pipa dan pengukuran lapangan.</p>
+          <p className="text-sm text-gray-400 mt-1">Hitung diameter & keliling bola (displacer) berdasarkan ukuran pipa dan pengukuran lapangan.</p>
         </div>
       </button>
 
@@ -214,23 +222,28 @@ export function WaterdrawCalculator() {
       {displacerResults && (
         <div className="bg-primary/10 p-5 rounded-card text-center border border-primary/20 mt-6 space-y-3">
           <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">Hasil Perhitungan Displacer</p>
+          
           <div className="bg-gray-800/80 p-3 rounded-card border border-gray-700 mt-2">
             <p className="text-xs text-gray-400 mb-1">Internal Diameter (ID) Pipa</p>
             <p className="text-md font-medium text-gray-300">{displacerResults.idInch} inch / {displacerResults.idMm} mm</p>
           </div>
+          
           <div className="grid grid-cols-2 gap-4 mt-2">
             <div className="bg-gray-800 p-3 rounded-card border border-gray-700">
-              <p className="text-xs text-gray-400 mb-1">Diameter Bola (mm)</p>
-              <p className="text-lg font-bold text-primary">{displacerResults.diameterMm}</p>
+              <p className="text-xs text-gray-400 mb-1">Diameter Bola</p>
+              <p className="text-xl font-bold text-primary">{displacerResults.diameterMm} <span className="text-sm font-normal text-gray-400">mm</span></p>
+              <p className="text-sm font-medium text-sky-400/80">{displacerResults.diameterInch} <span className="text-xs text-gray-500">inch</span></p>
             </div>
             <div className="bg-gray-800 p-3 rounded-card border border-gray-700">
-              <p className="text-xs text-gray-400 mb-1">Diameter Bola (inch)</p>
-              <p className="text-lg font-bold text-primary">{displacerResults.diameterInch}</p>
+              <p className="text-xs text-gray-400 mb-1">Keliling Bola</p>
+              <p className="text-xl font-bold text-primary">{displacerResults.circumferenceMm} <span className="text-sm font-normal text-gray-400">mm</span></p>
+              <p className="text-sm font-medium text-sky-400/80">{displacerResults.circumferenceInch} <span className="text-xs text-gray-500">inch</span></p>
             </div>
           </div>
+          
           <div className="bg-gray-800 p-3 rounded-card border border-gray-700 mt-2">
             <p className="text-xs text-gray-400 mb-1">Persentase Pembesaran vs ID</p>
-            <p className="text-xl font-bold text-success">{displacerResults.percent}%</p>
+            <p className="text-2xl font-bold text-success">{displacerResults.percent}%</p>
           </div>
         </div>
       )}
