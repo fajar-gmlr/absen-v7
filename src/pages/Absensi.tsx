@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useMemo, memo, useRef, useEffect } from 'react';
 import { Layout } from '../components/Layout';
 import { useEmployees, useAddAttendance, useHasSubmittedToday } from '../store/useAppStore';
@@ -337,7 +336,10 @@ export function Absensi() {
   const [selectedEmployee, setSelectedEmployee] = useState('');
   const [workLocation, setWorkLocation] = useState('');
   const [customWorkLocation, setCustomWorkLocation] = useState('');
-  const [healthCondition, setHealthCondition] = useState<HealthCondition>('' as HealthCondition);
+  
+  // FIX IS HERE: Default to 'healthy-no-symptoms' instead of empty string
+  const [healthCondition, setHealthCondition] = useState<HealthCondition>('healthy-no-symptoms');
+  
   const [yesterdayWork, setYesterdayWork] = useState('');
   const [todayWork, setTodayWork] = useState('');
   const [tomorrowAgenda, setTomorrowAgenda] = useState('');
@@ -427,11 +429,11 @@ export function Absensi() {
       setPopupMessage(timeGate.message);
       setShowPopup(true);
       
-      // Reset form
+      // Reset form (Ensure healthCondition resets to healthy!)
       setSelectedEmployee('');
       setWorkLocation('');
       setCustomWorkLocation('');
-      setHealthCondition('' as HealthCondition);
+      setHealthCondition('healthy-no-symptoms');
       setYesterdayWork('');
       setTodayWork('');
       setTomorrowAgenda('');
@@ -559,4 +561,3 @@ export function Absensi() {
     </Layout>
   );
 }
-
